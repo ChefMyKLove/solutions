@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ChefMyKLove Custom Software Solutions</title>
+<meta name="description" content="Custom websites, cooked from scratch and kept running. Full-service web care for artists, makers, and small businesses.">
+<style>
+  :root{
+    --ink:#161311;
+    --char:#1e1a17;
+    --paper:#f2ece2;
+    --amber:#c8842a;
+    --amber-dim:#8f5f1e;
+    --line:#3a332c;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;height:100%;}
+  body{
+    background:var(--ink);
+    color:var(--paper);
+    font-family:'Iowan Old Style','Georgia',serif;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    min-height:100vh;
+    overflow:hidden;
+    position:relative;
+  }
+
+  .grain{
+    position:fixed; inset:0;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.035'/%3E%3C/svg%3E");
+    pointer-events:none;
+    mix-blend-mode:overlay;
+  }
+
+  .wrap{
+    max-width:640px;
+    padding:48px 32px;
+    text-align:center;
+    position:relative;
+    z-index:1;
+  }
+
+  .mark{
+    font-family:'Courier New',monospace;
+    font-size:12px;
+    letter-spacing:0.35em;
+    text-transform:uppercase;
+    color:var(--amber);
+    margin-bottom:28px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:10px;
+  }
+  .mark::before,.mark::after{
+    content:"";
+    height:1px;
+    width:32px;
+    background:var(--amber-dim);
+  }
+
+  h1{
+    font-size:clamp(2.2rem, 6vw, 3.4rem);
+    font-weight:400;
+    line-height:1.08;
+    margin:0 0 20px;
+    letter-spacing:-0.01em;
+  }
+  h1 em{
+    font-style:italic;
+    color:var(--amber);
+  }
+
+  p.tag{
+    font-family:'Courier New',monospace;
+    font-size:14px;
+    color:#c9bfae;
+    letter-spacing:0.02em;
+    margin:0 0 40px;
+    line-height:1.7;
+  }
+
+  .pass{
+    display:inline-flex;
+    align-items:center;
+    gap:10px;
+    padding:10px 20px;
+    border:1px solid var(--line);
+    border-radius:3px;
+    font-family:'Courier New',monospace;
+    font-size:12px;
+    letter-spacing:0.08em;
+    color:#a89c88;
+    text-transform:uppercase;
+  }
+
+  .dot{
+    width:7px;height:7px;border-radius:50%;
+    background:var(--amber);
+    animation:simmer 1.6s ease-in-out infinite;
+  }
+  @keyframes simmer{
+    0%,100%{opacity:0.35; transform:scale(0.85);}
+    50%{opacity:1; transform:scale(1);}
+  }
+
+  footer{
+    margin-top:56px;
+    font-family:'Courier New',monospace;
+    font-size:12px;
+    color:#5c5347;
+  }
+  footer a{
+    color:var(--amber);
+    text-decoration:none;
+    border-bottom:1px solid var(--amber-dim);
+  }
+  footer a:hover{ border-color:var(--amber); }
+
+  @media (prefers-reduced-motion: reduce){
+    .dot{ animation:none; }
+  }
+</style>
+</head>
+<body>
+  <div class="grain"></div>
+  <div class="wrap">
+    <div class="mark">Custom Software Solutions</div>
+    <h1>Something's <em>on the stove.</em></h1>
+    <p class="tag">Cooking it up, then keeping it running.<br>Your website, cared for.</p>
+    <div class="pass">
+      <span class="dot"></span>
+      In service &nbsp;·&nbsp; site launching soon
+    </div>
+    <footer>
+      Get in touch &nbsp;→&nbsp; <a href="mailto:chef@chefmyklove.com">chef@chefmyklove.com</a>
+    </footer>
+  </div>
+</body>
+</html>
