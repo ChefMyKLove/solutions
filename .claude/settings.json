@@ -1,7 +1,12 @@
 {
   "permissions": {
     "allow": [
-      "Bash(mkdir -p \"d:/Desktop/software solutions/solutions\")"
+      "Bash(mkdir -p \"d:/Desktop/software solutions/solutions\")",
+      "Bash(git fetch *)",
+      "Bash(git stash *)",
+      "Bash(git merge *)",
+      "Bash(git push *)",
+      "Bash(git add *)"
     ],
     "additionalDirectories": [
       "d:\\Desktop\\software solutions"
