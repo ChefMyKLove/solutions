@@ -109,14 +109,18 @@ body{
   outline: 3px solid var(--sage);
   outline-offset: 3px;
 }
-.bubble[data-panel="menu"]{ top: 32%; left: 30%; }
-.bubble[data-panel="chef"]{ top: 58%; left: 66%; }
-.bubble[data-panel="pass"]{ top: 66%; left: 30%; }
-.bubble[data-panel="foh"]{  top: 30%; left: 68%; }
+.bubble[data-panel="menu"]{ top: 44%; left: 26%; }
+.bubble[data-panel="chef"]{ top: 66%; left: 62%; }
+.bubble[data-panel="pass"]{ top: 78%; left: 30%; }
+.bubble[data-panel="foh"]{  top: 40%; left: 72%; }
 
 @keyframes bob{
   0%, 100%{ transform: translate(-50%, -50%) translate(0, 0) rotate(0deg); }
   50%{ transform: translate(-50%, -50%) translate(var(--dx, 6px), var(--dy, -8px)) rotate(var(--rot, 2deg)); }
+}
+@keyframes bob-static{
+  0%, 100%{ transform: translate(0, 0) rotate(0deg); }
+  50%{ transform: translate(var(--dx, 6px), var(--dy, -8px)) rotate(var(--rot, 2deg)); }
 }
 .bubble.ambient{
   animation: bob var(--dur, 5s) ease-in-out var(--delay, 0s) infinite;
@@ -158,6 +162,7 @@ body{
   .bubble{ position:static; transform: scale(0.3); }
   #stage.resolved .bubble{ transform: scale(1); }
   .bubble:hover, .bubble:focus-visible{ transform: scale(1.05); }
+  .bubble.ambient{ animation-name: bob-static; }
 }
 </style>
 </head>
