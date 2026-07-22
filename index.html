@@ -322,8 +322,62 @@ body{
 </script>
 
 <script>
-  var boilHandle = startBoilRender(document.getElementById('boil-canvas'));
+  var BOIL_DURATION_MS = 3000;
+  var stageEl = document.getElementById('stage');
+  var boilHandle = null;
+  var skipRequested = false;
+
+  function resolveStage() {
+    if (boilHandle) { boilHandle.stop(); boilHandle = null; }
+    stageEl.classList.add('resolved');
+    document.getElementById('boil-again').hidden =
+      window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  }
+
+  function requestSkip() {
+    skipRequested = true;
+  }
+
+  function runBoilSequence() {
+    var reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    var alreadyBoiled = sessionStorage.getItem('boiled') === '1';
+
+    if (reduce || alreadyBoiled) {
+      resolveStage();
+      return;
+    }
+
+    skipRequested = false;
+    boilHandle = startBoilRender(document.getElementById('boil-canvas'));
+
+    var skipListener = function() {
+      requestSkip();
+      cleanupSkipListeners();
+    };
+    function cleanupSkipListeners() {
+      document.removeEventListener('click', skipListener);
+      document.removeEventListener('keydown', skipListener);
+      document.removeEventListener('touchstart', skipListener);
+    }
+    document.addEventListener('click', skipListener);
+    document.addEventListener('keydown', skipListener);
+    document.addEventListener('touchstart', skipListener);
+
+    var start = performance.now();
+    (function poll() {
+      var elapsed = performance.now() - start;
+      if (skipRequested || elapsed >= BOIL_DURATION_MS) {
+        cleanupSkipListeners();
+        sessionStorage.setItem('boiled', '1');
+        resolveStage();
+        return;
+      }
+      requestAnimationFrame(poll);
+    })();
+  }
+
   applyAmbientMotion();
+  runBoilSequence();
 </script>
 
 </body>
