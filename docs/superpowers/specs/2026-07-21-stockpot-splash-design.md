@@ -105,6 +105,15 @@ panels.
 - Mobile: same sequence and rules, with a reduced particle count for
   performance, and the four resolved bubbles arranged in a 2×2 grid
   instead of a free scatter.
+- A small persistent control (e.g. "Boil Again ↻") is present once the
+  bubbles have resolved, letting the visitor manually replay the boil
+  sequence on demand. It re-runs the same boil → resolve animation without
+  reloading the page, and does not affect the `sessionStorage` skip-on-return
+  behavior (the automatic replay-on-load rule is unchanged — this control is
+  purely opt-in). Hidden or replaced with a no-op under
+  `prefers-reduced-motion` (§5) since replaying motion the visitor has
+  opted out of would defeat the setting; consider a static "seen this
+  before" acknowledgment instead in that case.
 
 ## 6. Panel Behavior
 
