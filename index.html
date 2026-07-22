@@ -114,6 +114,17 @@ body{
 .bubble[data-panel="pass"]{ top: 66%; left: 30%; }
 .bubble[data-panel="foh"]{  top: 30%; left: 68%; }
 
+@keyframes bob{
+  0%, 100%{ transform: translate(-50%, -50%) translate(0, 0) rotate(0deg); }
+  50%{ transform: translate(-50%, -50%) translate(var(--dx, 6px), var(--dy, -8px)) rotate(var(--rot, 2deg)); }
+}
+.bubble.ambient{
+  animation: bob var(--dur, 5s) ease-in-out var(--delay, 0s) infinite;
+}
+@media (prefers-reduced-motion: reduce){
+  .bubble.ambient{ animation: none; }
+}
+
 #boil-again{
   position:absolute;
   bottom: 24px;
@@ -174,6 +185,26 @@ body{
   // Force-resolved for now so we can see the resting layout before the
   // boil engine exists (Task 5 removes this line).
   document.getElementById('stage').classList.add('resolved');
+
+  function applyAmbientMotion(){
+    var reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    var bubbles = document.querySelectorAll('.bubble');
+    bubbles.forEach(function(bubble, i){
+      if (reduce) return;
+      var dx = (Math.random() * 16 - 8).toFixed(1) + 'px';
+      var dy = (Math.random() * 16 - 10).toFixed(1) + 'px';
+      var rot = (Math.random() * 6 - 3).toFixed(1) + 'deg';
+      var dur = (4 + Math.random() * 3).toFixed(2) + 's';
+      var delay = (i * 0.4 + Math.random() * 0.6).toFixed(2) + 's';
+      bubble.style.setProperty('--dx', dx);
+      bubble.style.setProperty('--dy', dy);
+      bubble.style.setProperty('--rot', rot);
+      bubble.style.setProperty('--dur', dur);
+      bubble.style.setProperty('--delay', delay);
+      bubble.classList.add('ambient');
+    });
+  }
+  applyAmbientMotion();
 </script>
 
 </body>
