@@ -164,6 +164,43 @@ body{
   .bubble:hover, .bubble:focus-visible{ transform: scale(1.05); }
   .bubble.ambient{ animation-name: bob-static; }
 }
+
+.panel{
+  position:fixed;
+  inset:0;
+  background: var(--paper);
+  overflow-y:auto;
+  transform: scale(0.3);
+  opacity:0;
+  pointer-events:none;
+  transition: transform 0.4s ease, opacity 0.4s ease;
+  padding: 40px 24px 60px;
+}
+.panel.open{
+  transform: scale(1);
+  opacity:1;
+  pointer-events:auto;
+}
+.panel[hidden]{ display:none; }
+.panel-inner{ max-width: 680px; margin: 0 auto; }
+.panel-close{
+  position:sticky;
+  top:0;
+  float:right;
+  font-family:'Space Mono', monospace;
+  font-size: 22px;
+  background: var(--paper);
+  border: 2px solid var(--ember);
+  color: var(--ember);
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  cursor:pointer;
+  line-height:1;
+}
+@media (prefers-reduced-motion: reduce){
+  .panel{ transition: none; }
+}
 </style>
 </head>
 <body>
@@ -417,6 +454,80 @@ body{
 
   applyAmbientMotion();
   runBoilSequence();
+</script>
+
+<div class="panel" id="panel-menu" role="dialog" aria-labelledby="panel-menu-title" hidden>
+  <button class="panel-close" type="button" aria-label="Close">&times;</button>
+  <div class="panel-inner">
+    <h2 id="panel-menu-title">The Menu</h2>
+    <p>Placeholder — real menu content added in Task 8.</p>
+  </div>
+</div>
+
+<div class="panel" id="panel-chef" role="dialog" aria-labelledby="panel-chef-title" hidden>
+  <button class="panel-close" type="button" aria-label="Close">&times;</button>
+  <div class="panel-inner">
+    <h2 id="panel-chef-title">The Chef</h2>
+    <p>Placeholder — real content added in Task 9.</p>
+  </div>
+</div>
+
+<div class="panel" id="panel-pass" role="dialog" aria-labelledby="panel-pass-title" hidden>
+  <button class="panel-close" type="button" aria-label="Close">&times;</button>
+  <div class="panel-inner">
+    <h2 id="panel-pass-title">The Pass</h2>
+    <p>Placeholder — real content added in Task 9.</p>
+  </div>
+</div>
+
+<div class="panel" id="panel-foh" role="dialog" aria-labelledby="panel-foh-title" hidden>
+  <button class="panel-close" type="button" aria-label="Close">&times;</button>
+  <div class="panel-inner">
+    <h2 id="panel-foh-title">Front of House</h2>
+    <p>Placeholder — real content added in Task 10.</p>
+  </div>
+</div>
+
+<script>
+  var openPanelId = null;
+  var lastFocusedTrigger = null;
+
+  function onPanelKeydown(e) {
+    if (e.key === 'Escape') closePanel();
+  }
+
+  function openPanel(id) {
+    if (openPanelId) closePanel();
+    var panel = document.getElementById('panel-' + id);
+    if (!panel) return;
+    lastFocusedTrigger = document.querySelector('.bubble[data-panel="' + id + '"]');
+    panel.hidden = false;
+    requestAnimationFrame(function() { panel.classList.add('open'); });
+    openPanelId = id;
+    panel.querySelector('.panel-close').focus();
+    document.addEventListener('keydown', onPanelKeydown);
+  }
+
+  function closePanel() {
+    if (!openPanelId) return;
+    var panel = document.getElementById('panel-' + openPanelId);
+    panel.classList.remove('open');
+    var finish = function() { panel.hidden = true; };
+    panel.addEventListener('transitionend', finish, { once: true });
+    document.removeEventListener('keydown', onPanelKeydown);
+    if (lastFocusedTrigger) lastFocusedTrigger.focus();
+    openPanelId = null;
+  }
+
+  document.querySelectorAll('.bubble').forEach(function(bubble) {
+    bubble.addEventListener('click', function() {
+      openPanel(bubble.dataset.panel);
+    });
+  });
+
+  document.querySelectorAll('.panel-close').forEach(function(btn) {
+    btn.addEventListener('click', closePanel);
+  });
 </script>
 
 </body>
