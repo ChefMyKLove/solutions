@@ -376,6 +376,40 @@ body{
     })();
   }
 
+  function replayBoilManually() {
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    stageEl.classList.remove('resolved');
+    skipRequested = false;
+    boilHandle = startBoilRender(document.getElementById('boil-canvas'));
+
+    var skipListener = function() { requestSkip(); cleanupSkipListeners(); };
+    function cleanupSkipListeners() {
+      document.removeEventListener('click', skipListener);
+      document.removeEventListener('keydown', skipListener);
+      document.removeEventListener('touchstart', skipListener);
+    }
+    // Give the click that triggered the replay a moment to not
+    // immediately self-skip the animation it just started.
+    setTimeout(function() {
+      document.addEventListener('click', skipListener);
+      document.addEventListener('keydown', skipListener);
+      document.addEventListener('touchstart', skipListener);
+    }, 300);
+
+    var start = performance.now();
+    (function poll() {
+      var elapsed = performance.now() - start;
+      if (skipRequested || elapsed >= BOIL_DURATION_MS) {
+        cleanupSkipListeners();
+        resolveStage();
+        return;
+      }
+      requestAnimationFrame(poll);
+    })();
+  }
+
+  document.getElementById('boil-again').addEventListener('click', replayBoilManually);
+
   applyAmbientMotion();
   runBoilSequence();
 </script>
