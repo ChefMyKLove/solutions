@@ -383,6 +383,42 @@ body{
   transition: opacity 0.15s ease;
 }
 .intake button:hover{ opacity:0.88; }
+
+.tasting-item{
+  padding: 16px 0;
+  border-bottom: 1px solid var(--line);
+}
+.tasting-item:last-child{ border-bottom:none; }
+.tasting-item .top{
+  display:flex;
+  justify-content:space-between;
+  align-items:baseline;
+}
+.tasting-item .site{
+  font-family:'Space Mono', monospace;
+  font-weight:700;
+  font-size:14.5px;
+}
+.tasting-item a{
+  color: var(--char);
+  text-decoration:none;
+  border-bottom: 1px solid var(--ember);
+}
+.tasting-item a:hover{ color: var(--ember); }
+.tasting-item .note{
+  font-size:13px;
+  color: var(--slate);
+  margin-top:4px;
+  max-width: 480px;
+}
+.tasting-item .tag{
+  font-family:'Space Mono', monospace;
+  font-size:10.5px;
+  letter-spacing:1px;
+  text-transform:uppercase;
+  color: var(--sage);
+  white-space:nowrap;
+}
 </style>
 </head>
 <body>
@@ -733,16 +769,79 @@ body{
 <div class="panel" id="panel-chef" role="dialog" aria-labelledby="panel-chef-title" hidden>
   <button class="panel-close" type="button" aria-label="Close">&times;</button>
   <div class="panel-inner">
-    <h2 id="panel-chef-title">The Chef</h2>
-    <p>Placeholder — real content added in Task 9.</p>
+    <div class="eyebrow">The Chef</div>
+    <h2 id="panel-chef-title" style="font-family:'Space Mono',monospace; margin-bottom:16px;">Confidential</h2>
+    <p style="margin-bottom:14px; line-height:1.7;">
+      I worked kitchens for <strong>[X YEARS]</strong>, mostly as
+      <strong>[YOUR ROLE(S) — e.g. line cook / sous chef]</strong> at
+      <strong>[KIND OF PLACES — e.g. a couple of mid-size scratch kitchens and one place that
+      should've closed a year before it did]</strong>. I left because
+      <strong>[YOUR REAL REASON]</strong>, and landed in software around
+      <strong>[YEAR / HOW IT HAPPENED]</strong>.
+    </p>
+    <p style="margin-bottom:14px; line-height:1.7;">
+      Here's the thing nobody warns you about: the two jobs run on the same discipline. Mise en
+      place is just sprint planning with knives. "The ticket's not done till the plate's right"
+      is the same standard as "the feature's not done till it works in prod." And the reason my
+      builds all ship with a year of Web Care isn't a sales tactic — it's the same instinct that
+      keeps a line cook from walking out mid-service. You don't hand someone a plate and
+      disappear. You don't hand someone a website and disappear either.
+    </p>
+    <p style="line-height:1.7;">
+      <strong>[OPTIONAL: ONE MORE SPECIFIC KITCHEN DETAIL/STORY THAT MAKES THIS REAL]</strong>
+    </p>
   </div>
 </div>
 
 <div class="panel" id="panel-pass" role="dialog" aria-labelledby="panel-pass-title" hidden>
   <button class="panel-close" type="button" aria-label="Close">&times;</button>
   <div class="panel-inner">
-    <h2 id="panel-pass-title">The Pass</h2>
-    <p>Placeholder — real content added in Task 9.</p>
+    <div class="eyebrow">The Pass — Recent Work</div>
+    <h2 id="panel-pass-title" style="font-family:'Space Mono',monospace; margin-bottom:16px;">Tickets Fired</h2>
+
+    <div class="tasting-item">
+      <div class="top">
+        <span class="site"><a href="https://kathleenyearwood.com" target="_blank" rel="noopener">kathleenyearwood.com</a></span>
+        <span class="tag">Artist website</span>
+      </div>
+      <div class="note">
+        Stack: <strong>[e.g. static HTML/CSS, or React — fill in]</strong>. Constraint:
+        <strong>[REAL CONSTRAINT — budget, timeline, client's existing brand assets, etc.]</strong>.
+        One decision worth telling: <strong>[e.g. why you structured the gallery / nav / hosting
+        the way you did]</strong>.
+      </div>
+    </div>
+
+    <div class="tasting-item">
+      <div class="top">
+        <span class="site"><a href="https://chefmyklove.github.io/SelinaMartin/" target="_blank" rel="noopener">selinamartin.com</a></span>
+        <span class="tag">Artist website</span>
+      </div>
+      <div class="note">
+        Stack: <strong>[FILL IN]</strong>. Constraint: <strong>[FILL IN]</strong>. Decision:
+        <strong>[FILL IN]</strong>.
+      </div>
+    </div>
+
+    <div class="tasting-item">
+      <div class="top">
+        <span class="site"><a href="https://chefmyklove.com" target="_blank" rel="noopener">chefmyklove.com</a></span>
+        <span class="tag">Studio site</span>
+      </div>
+      <div class="note">
+        Stack: <strong>[FILL IN]</strong>. Constraint: <strong>[FILL IN]</strong>. Decision:
+        <strong>[FILL IN]</strong>.
+      </div>
+    </div>
+
+    <div class="tasting-item" style="border-bottom:none;">
+      <div class="top"><span class="site">This page, too</span><span class="tag">Exhibit</span></div>
+      <div class="note">
+        The boil above is hand-rolled Canvas 2D — no animation library, no framework, zero
+        dependencies. If you want to see how it works, view source. That's not a dare, that's
+        the pitch.
+      </div>
+    </div>
   </div>
 </div>
 
