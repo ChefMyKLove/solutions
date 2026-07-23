@@ -201,6 +201,188 @@ body{
 @media (prefers-reduced-motion: reduce){
   .panel{ transition: none; }
 }
+
+.eyebrow{
+  font-family:'Space Mono', monospace;
+  font-size: 11px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--sage);
+  margin-bottom: 10px;
+}
+.eyebrow .note{
+  text-transform:none;
+  letter-spacing:0;
+  font-size:11px;
+  color: var(--slate);
+  opacity:0.65;
+  font-style:italic;
+}
+
+.course-label{
+  font-family:'Space Mono', monospace;
+  font-size:12px;
+  font-weight:700;
+  color: var(--char);
+  margin: 22px 0 12px;
+  text-transform:uppercase;
+  letter-spacing:1px;
+}
+.course-label:first-child{ margin-top:0; }
+
+.menu-item{
+  display:flex;
+  justify-content:space-between;
+  align-items:baseline;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+.menu-item:last-child{ margin-bottom:0; }
+.menu-item .desc{ flex-shrink:0; max-width: 62%; }
+.menu-item .desc .name{
+  font-weight:600;
+  font-size:15px;
+}
+.menu-item .desc .sub{
+  font-size:12.5px;
+  color: var(--sage);
+  margin-top:2px;
+  line-height:1.4;
+}
+.leader{
+  flex:1;
+  border-bottom: 2px dotted var(--line);
+  transform: translateY(-4px);
+}
+.price{
+  font-family:'Space Mono', monospace;
+  font-weight:700;
+  font-size:15px;
+  color: var(--ember);
+  white-space:nowrap;
+  text-align:right;
+}
+.price .per{
+  display:block;
+  font-size:10px;
+  font-weight:400;
+  color: var(--slate);
+  opacity:0.7;
+  text-transform:uppercase;
+  letter-spacing:0.5px;
+}
+.price .tag{
+  display:block;
+  font-size:9.5px;
+  font-weight:700;
+  letter-spacing:1px;
+  text-transform:uppercase;
+  color: var(--sage);
+  margin-bottom:2px;
+}
+
+.scale-intro{
+  font-size:13px;
+  font-style:italic;
+  color: var(--slate);
+  margin: -4px 0 18px;
+  line-height:1.5;
+  max-width: 46ch;
+}
+.menu-item.scale-row{ align-items:flex-start; }
+.scale-price{ text-align:right; flex-shrink:0; }
+.scale-stamp{
+  display:inline-block;
+  font-family:'Space Mono', monospace;
+  font-size:8.5px;
+  letter-spacing:1px;
+  text-transform:uppercase;
+  color: var(--ember);
+  border: 1.5px solid var(--ember);
+  padding: 2px 6px;
+  transform: rotate(-2deg);
+  margin-bottom:5px;
+}
+.scale-range{
+  font-family:'Space Mono', monospace;
+  font-size:11px;
+  color: var(--slate);
+  opacity:0.8;
+  margin-top:3px;
+}
+.scale-range .bracket{ color: var(--sage); }
+
+.care-note{
+  background: var(--paper-shadow);
+  border-left: 3px solid var(--ember);
+  padding: 14px 16px;
+  margin-top: 18px;
+  font-size: 13px;
+  line-height:1.6;
+  color: var(--slate);
+}
+.care-note b{ color: var(--char); }
+
+.intake{
+  background: var(--paper-shadow);
+  padding: 22px 22px 20px;
+  border: 1px dashed var(--line);
+}
+.intake .field{ margin-bottom: 14px; }
+.intake .field:last-of-type{ margin-bottom: 18px; }
+.intake label{
+  display:block;
+  font-family:'Space Mono', monospace;
+  font-size: 10.5px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--sage);
+  margin-bottom: 6px;
+}
+.intake input[type="text"],
+.intake input[type="email"],
+.intake select,
+.intake textarea{
+  width:100%;
+  font-family:'Work Sans', sans-serif;
+  font-size: 14px;
+  padding: 9px 10px;
+  background: var(--paper);
+  border: 1px solid var(--line);
+  color: var(--char);
+}
+.intake textarea{ resize:vertical; min-height:60px; }
+.intake .checks{
+  display:flex;
+  gap: 18px;
+  flex-wrap:wrap;
+}
+.intake .checks label{
+  display:flex;
+  align-items:center;
+  gap:6px;
+  text-transform:none;
+  letter-spacing:0;
+  font-size:13px;
+  color: var(--char);
+  font-family:'Work Sans', sans-serif;
+}
+.intake .checks input{ width:auto; }
+.intake button{
+  width:100%;
+  font-family:'Space Mono', monospace;
+  font-size: 13px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  font-weight:700;
+  background: var(--ember);
+  color: var(--paper);
+  border: none;
+  padding: 13px;
+  cursor:pointer;
+  transition: opacity 0.15s ease;
+}
+.intake button:hover{ opacity:0.88; }
 </style>
 </head>
 <body>
@@ -459,8 +641,92 @@ body{
 <div class="panel" id="panel-menu" role="dialog" aria-labelledby="panel-menu-title" hidden>
   <button class="panel-close" type="button" aria-label="Close">&times;</button>
   <div class="panel-inner">
-    <h2 id="panel-menu-title">The Menu</h2>
-    <p>Placeholder — real menu content added in Task 8.</p>
+    <div class="eyebrow">Today's Menu <span class="note">— build price includes first year of Web Care</span></div>
+    <h2 id="panel-menu-title" style="font-family:'Space Mono',monospace; margin-bottom:16px;">The Menu</h2>
+
+    <div class="course-label">Builds</div>
+    <p class="scale-intro">Builds are priced on a sliding scale — pay what you can afford within the range shown for each one.</p>
+
+    <div class="menu-item scale-row">
+      <div class="desc">
+        <div class="name">Artist / Brand Website</div>
+        <div class="sub">Custom-built, responsive · Year 1 Care included</div>
+      </div>
+      <div class="scale-price">
+        <span class="scale-stamp">Sliding Scale</span>
+        <div class="price"><span class="tag">Suggested</span>$420</div>
+        <div class="scale-range"><span class="bracket">[</span>$200 – $1,000<span class="bracket">]</span></div>
+      </div>
+    </div>
+
+    <div class="menu-item scale-row">
+      <div class="desc">
+        <div class="name">Web Application</div>
+        <div class="sub">React/Node front-to-back, database included · Year 1 Care included</div>
+      </div>
+      <div class="scale-price">
+        <span class="scale-stamp">Sliding Scale</span>
+        <div class="price"><span class="tag">Suggested</span>$1,200</div>
+        <div class="scale-range"><span class="bracket">[</span>$500 – $2,000<span class="bracket">]</span></div>
+      </div>
+    </div>
+
+    <div class="menu-item scale-row">
+      <div class="desc">
+        <div class="name">E-commerce Build</div>
+        <div class="sub">Storefront, cart, payments · Years 1–2 Care included</div>
+      </div>
+      <div class="scale-price">
+        <span class="scale-stamp">Sliding Scale</span>
+        <div class="price"><span class="tag">Suggested</span>$2,250</div>
+        <div class="scale-range"><span class="bracket">[</span>$1,500 – $3,000<span class="bracket">]</span></div>
+      </div>
+    </div>
+
+    <div class="course-label">Web Care — after your included period</div>
+
+    <div class="menu-item">
+      <div class="desc"><div class="name">Light Care</div><div class="sub">A few updates a year, domain/email upkeep</div></div>
+      <div class="leader"></div>
+      <div class="price">$45<span class="per">/mo</span></div>
+    </div>
+    <div class="menu-item">
+      <div class="desc"><div class="name">Active Care</div><div class="sub">Monthly updates, inbox forwarding, priority turnaround</div></div>
+      <div class="leader"></div>
+      <div class="price">$125<span class="per">/mo</span></div>
+    </div>
+    <div class="menu-item">
+      <div class="desc"><div class="name">Org Care</div><div class="sub">For businesses, not solo creators — heavier hours, faster SLA</div></div>
+      <div class="leader"></div>
+      <div class="price">$425<span class="per">/mo</span></div>
+    </div>
+    <div class="menu-item">
+      <div class="desc"><div class="name">À la Carte Fix</div><div class="sub">One-off, no subscription. Don't panic.</div></div>
+      <div class="leader"></div>
+      <div class="price">$42<span class="per">/hr</span></div>
+    </div>
+    <div class="menu-item">
+      <div class="desc"><div class="name">Custom Project</div><div class="sub">Tell me what you're building</div></div>
+      <div class="leader"></div>
+      <div class="price">quote on request</div>
+    </div>
+
+    <div class="care-note">
+      <b>How Care tiers work:</b> pricing scales with how often you need touched — someone who
+      emails changes monthly pays a different rate than someone who checks in every couple of
+      years. Tier gets set at your intake based on how you'll actually use the site.
+    </div>
+
+    <form class="intake" id="menuIntakeForm" style="margin-top:24px;">
+      <div class="field"><label for="m-name">Your Name</label><input type="text" id="m-name" name="name" required></div>
+      <div class="field"><label for="m-email">Email</label><input type="email" id="m-email" name="email" required></div>
+      <div class="field"><label for="m-what">What's the site/app for?</label><textarea id="m-what" name="project_description" placeholder="e.g. portfolio for my paintings, storefront for handmade jewelry"></textarea></div>
+      <button type="submit">Send Order to the Kitchen</button>
+      <p class="form-status" id="menuFormStatus" hidden></p>
+      <p style="font-size:12px; margin-top:10px; color:var(--slate);">or just email <a href="mailto:solutions@chefmyklove.com">solutions@chefmyklove.com</a> directly</p>
+    </form>
+
+    <p style="margin-top:20px;"><a href="menu.html" target="_blank" rel="noopener">printable menu &rarr;</a></p>
   </div>
 </div>
 
@@ -527,6 +793,38 @@ body{
 
   document.querySelectorAll('.panel-close').forEach(function(btn) {
     btn.addEventListener('click', closePanel);
+  });
+</script>
+
+<script>
+  var WEB3FORMS_ACCESS_KEY = 'REPLACE_WITH_YOUR_WEB3FORMS_ACCESS_KEY';
+
+  async function submitIntake(form, statusEl) {
+    var formData = new FormData(form);
+    formData.append('access_key', WEB3FORMS_ACCESS_KEY);
+    statusEl.hidden = false;
+    statusEl.textContent = 'Sending...';
+    try {
+      var res = await fetch('https://api.web3forms.com/submit', {
+        method: 'POST',
+        body: formData
+      });
+      var data = await res.json();
+      if (data.success) {
+        statusEl.textContent = "Order received — I'll be in touch soon.";
+        form.reset();
+      } else {
+        throw new Error(data.message || 'Submission failed');
+      }
+    } catch (err) {
+      statusEl.textContent =
+        "Something didn't fire — email solutions@chefmyklove.com directly and I'll get it.";
+    }
+  }
+
+  document.getElementById('menuIntakeForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    submitIntake(this, document.getElementById('menuFormStatus'));
   });
 </script>
 
