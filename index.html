@@ -444,6 +444,14 @@ body{
   margin-top: 10px;
   color: var(--sage);
 }
+
+@media (max-width: 480px){
+  .contact-grid{ grid-template-columns: 1fr; }
+  .menu-item .desc{ max-width: 58%; }
+  .menu-item.scale-row{ flex-direction:column; align-items:flex-start; }
+  .menu-item.scale-row .desc{ max-width:100%; }
+  .scale-price{ text-align:left; margin-top:8px; }
+}
 </style>
 </head>
 <body>
