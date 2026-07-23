@@ -930,6 +930,10 @@ body{
     if (openPanelId) closePanel();
     var panel = document.getElementById('panel-' + id);
     if (!panel) return;
+    if (panel._closeFinish) {
+      panel.removeEventListener('transitionend', panel._closeFinish);
+      panel._closeFinish = null;
+    }
     lastFocusedTrigger = document.querySelector('.bubble[data-panel="' + id + '"]');
     panel.hidden = false;
     requestAnimationFrame(function() { panel.classList.add('open'); });
@@ -942,7 +946,11 @@ body{
     if (!openPanelId) return;
     var panel = document.getElementById('panel-' + openPanelId);
     panel.classList.remove('open');
-    var finish = function() { panel.hidden = true; };
+    var finish = function() {
+      panel.hidden = true;
+      panel._closeFinish = null;
+    };
+    panel._closeFinish = finish;
     panel.addEventListener('transitionend', finish, { once: true });
     document.removeEventListener('keydown', onPanelKeydown);
     if (lastFocusedTrigger) lastFocusedTrigger.focus();
