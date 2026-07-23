@@ -419,6 +419,31 @@ body{
   color: var(--sage);
   white-space:nowrap;
 }
+
+.contact-grid{
+  display:grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 18px 24px;
+}
+.contact-grid .label{
+  font-family:'Space Mono', monospace;
+  font-size:10.5px;
+  letter-spacing:1.5px;
+  text-transform:uppercase;
+  color: var(--sage);
+  margin-bottom:4px;
+}
+.contact-grid .value{
+  font-size:14.5px;
+  font-weight:500;
+}
+.contact-grid .value a{ color: var(--char); }
+
+.form-status{
+  font-size: 13px;
+  margin-top: 10px;
+  color: var(--sage);
+}
 </style>
 </head>
 <body>
@@ -848,8 +873,48 @@ body{
 <div class="panel" id="panel-foh" role="dialog" aria-labelledby="panel-foh-title" hidden>
   <button class="panel-close" type="button" aria-label="Close">&times;</button>
   <div class="panel-inner">
-    <h2 id="panel-foh-title">Front of House</h2>
-    <p>Placeholder — real content added in Task 10.</p>
+    <div class="eyebrow">Front of House — Start an Order</div>
+    <h2 id="panel-foh-title" style="font-family:'Space Mono',monospace; margin-bottom:16px;">Tell Me About Your Project</h2>
+
+    <div class="contact-grid" style="margin-bottom:24px;">
+      <div><div class="label">Email</div><div class="value"><a href="mailto:solutions@chefmyklove.com">solutions@chefmyklove.com</a></div></div>
+      <div><div class="label">Messenger</div><div class="value">Chefmyklove Custom Software Solutions</div></div>
+      <div><div class="label">WhatsApp</div><div class="value">Available on request</div></div>
+      <div><div class="label">Web</div><div class="value"><a href="https://solutions.chefmyklove.com" target="_blank" rel="noopener">solutions.chefmyklove.com</a></div></div>
+    </div>
+
+    <form class="intake" id="fohIntakeForm">
+      <div class="field"><label for="f-name">Your Name</label><input type="text" id="f-name" name="name" required></div>
+      <div class="field"><label for="f-email">Email</label><input type="email" id="f-email" name="email" required></div>
+      <div class="field"><label for="f-what">What's the site/app for?</label><textarea id="f-what" name="project_description" placeholder="e.g. portfolio for my paintings, storefront for handmade jewelry, booking tool for my studio"></textarea></div>
+      <div class="field">
+        <label for="f-type">Closest to</label>
+        <select id="f-type" name="project_type">
+          <option>Artist / Brand Website</option>
+          <option>Web Application</option>
+          <option>E-commerce Build</option>
+          <option>Not sure yet</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Do you need it maintained/updated regularly?</label>
+        <div class="checks">
+          <label><input type="radio" name="freq" value="Rarely (every year or two)" checked> Rarely</label>
+          <label><input type="radio" name="freq" value="A few times a year"> A few times a year</label>
+          <label><input type="radio" name="freq" value="Monthly or more"> Monthly+</label>
+        </div>
+      </div>
+      <div class="field">
+        <label>Need a managed email address too?</label>
+        <div class="checks">
+          <label><input type="radio" name="email_need" value="Yes" checked> Yes</label>
+          <label><input type="radio" name="email_need" value="No"> No</label>
+        </div>
+      </div>
+      <button type="submit">Send Order to the Kitchen</button>
+      <p class="form-status" id="fohFormStatus" hidden></p>
+      <p style="font-size:12px; margin-top:10px; color:var(--slate);">or just email <a href="mailto:solutions@chefmyklove.com">solutions@chefmyklove.com</a> directly</p>
+    </form>
   </div>
 </div>
 
@@ -924,6 +989,13 @@ body{
   document.getElementById('menuIntakeForm').addEventListener('submit', function(e) {
     e.preventDefault();
     submitIntake(this, document.getElementById('menuFormStatus'));
+  });
+</script>
+
+<script>
+  document.getElementById('fohIntakeForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    submitIntake(this, document.getElementById('fohFormStatus'));
   });
 </script>
 
