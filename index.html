@@ -99,11 +99,12 @@ body{
   text-transform: uppercase;
   cursor:pointer;
   opacity:0;
+  pointer-events:none;
   transform: translate(-50%, -50%) scale(0.3);
   transition: opacity 0.7s ease, transform 0.7s ease;
   box-shadow: 0 10px 24px rgba(0,0,0,0.18);
 }
-#stage.resolved .bubble{ opacity:1; transform: translate(-50%, -50%) scale(1); }
+#stage.resolved .bubble{ opacity:1; pointer-events:auto; transform: translate(-50%, -50%) scale(1); }
 .bubble:hover, .bubble:focus-visible{
   transform: translate(-50%, -50%) scale(1.08) rotate(-3deg);
   outline: 3px solid var(--sage);
@@ -791,7 +792,7 @@ body{
       <div class="field"><label for="m-email">Email</label><input type="email" id="m-email" name="email" required></div>
       <div class="field"><label for="m-what">What's the site/app for?</label><textarea id="m-what" name="project_description" placeholder="e.g. portfolio for my paintings, storefront for handmade jewelry"></textarea></div>
       <button type="submit">Send Order to the Kitchen</button>
-      <p class="form-status" id="menuFormStatus" hidden></p>
+      <p class="form-status" id="menuFormStatus" aria-live="polite" hidden></p>
       <p style="font-size:12px; margin-top:10px; color:var(--slate);">or just email <a href="mailto:solutions@chefmyklove.com">solutions@chefmyklove.com</a> directly</p>
     </form>
 
@@ -920,7 +921,7 @@ body{
         </div>
       </div>
       <button type="submit">Send Order to the Kitchen</button>
-      <p class="form-status" id="fohFormStatus" hidden></p>
+      <p class="form-status" id="fohFormStatus" aria-live="polite" hidden></p>
       <p style="font-size:12px; margin-top:10px; color:var(--slate);">or just email <a href="mailto:solutions@chefmyklove.com">solutions@chefmyklove.com</a> directly</p>
     </form>
   </div>
@@ -954,12 +955,18 @@ body{
     if (!openPanelId) return;
     var panel = document.getElementById('panel-' + openPanelId);
     panel.classList.remove('open');
-    var finish = function() {
+    var reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (reduceMotion) {
       panel.hidden = true;
       panel._closeFinish = null;
-    };
-    panel._closeFinish = finish;
-    panel.addEventListener('transitionend', finish, { once: true });
+    } else {
+      var finish = function() {
+        panel.hidden = true;
+        panel._closeFinish = null;
+      };
+      panel._closeFinish = finish;
+      panel.addEventListener('transitionend', finish, { once: true });
+    }
     document.removeEventListener('keydown', onPanelKeydown);
     if (lastFocusedTrigger) lastFocusedTrigger.focus();
     openPanelId = null;
