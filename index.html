@@ -55,7 +55,7 @@ body{
   transition: opacity 1.3s ease;
   will-change: transform;
 }
-#stage.resolved #kitchen-bg{ opacity:1; }
+#stage.kitchen-visible #kitchen-bg{ opacity:1; }
 #kitchen-bg::after{
   content:"";
   position:absolute;
@@ -71,7 +71,7 @@ body{
   transition: opacity 1.3s ease;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
 }
-#stage.resolved #grain-overlay{ opacity:0.22; }
+#stage.kitchen-visible #grain-overlay{ opacity:0.22; }
 @media (prefers-reduced-motion: reduce){
   #kitchen-bg{ transform:none !important; }
 }
@@ -746,6 +746,9 @@ body{
   function resolveStage() {
     if (boilHandle) { boilHandle.stop(); boilHandle = null; }
     stageEl.classList.add('resolved');
+    // Once shown, the kitchen background stays visible through every
+    // future replay - only .resolved (canvas/masthead/bubbles) toggles.
+    stageEl.classList.add('kitchen-visible');
     document.getElementById('boil-again').hidden =
       window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   }
