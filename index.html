@@ -3,9 +3,9 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Chefmyklove — Custom Software, Cooked to Order</title>
-<meta property="og:title" content="Chefmyklove — Custom Software, Cooked to Order">
-<meta property="og:description" content="Custom software from a guy who used to work the line.">
+<title>ChefMyKLove — Custom Software Solutions + Digital Management</title>
+<meta property="og:title" content="ChefMyKLove — Custom Software Solutions + Digital Management">
+<meta property="og:description" content="Ran kitchens for thirty years. Never served a half-finished plate. Never ship a half-finished build.">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://solutions.chefmyklove.com">
 <meta name="twitter:card" content="summary">
@@ -102,14 +102,33 @@ body{
   font-size: clamp(32px, 7vw, 56px);
   letter-spacing: -1px;
   color: var(--ember);
-  text-transform: uppercase;
   text-shadow: 0 2px 14px rgba(0,0,0,0.55);
 }
-#masthead p{
+#masthead .name-line{
   margin-top: 10px;
   font-family:'Space Mono', monospace;
-  font-size: clamp(12px, 2vw, 15px);
-  letter-spacing: 0.5px;
+  font-weight: 700;
+  font-size: clamp(14px, 2.4vw, 18px);
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  text-shadow: 0 1px 8px rgba(0,0,0,0.6);
+}
+#masthead .name-sub{
+  margin-top: 3px;
+  font-family:'Space Mono', monospace;
+  font-size: clamp(11px, 1.8vw, 13px);
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  opacity: 0.72;
+  text-shadow: 0 1px 8px rgba(0,0,0,0.6);
+}
+#masthead #tagline{
+  margin-top: 16px;
+  font-family:'Work Sans', sans-serif;
+  font-style: italic;
+  font-size: clamp(13px, 2vw, 16px);
+  letter-spacing: 0.2px;
+  line-height: 1.5;
   text-shadow: 0 1px 8px rgba(0,0,0,0.6);
 }
 
@@ -143,10 +162,14 @@ body{
   outline: 3px solid var(--sage);
   outline-offset: 3px;
 }
-.bubble[data-panel="menu"]{ top: 44%; left: 26%; }
-.bubble[data-panel="chef"]{ top: 66%; left: 62%; }
-.bubble[data-panel="pass"]{ top: 78%; left: 30%; }
-.bubble[data-panel="foh"]{  top: 40%; left: 72%; }
+.bubble[data-panel="menu"]{ top: 53%; left: 26%; }
+.bubble[data-panel="chef"]{ top: 70%; left: 62%; }
+.bubble[data-panel="pass"]{ top: 81%; left: 30%; }
+.bubble[data-panel="foh"]{  top: 51%; left: 72%; }
+.bubble-deco{
+  pointer-events: none;
+  cursor: default;
+}
 
 @keyframes bob{
   0%, 100%{ transform: translate(-50%, -50%) translate(0, 0) rotate(0deg); }
@@ -186,7 +209,7 @@ body{
 @media (max-width: 700px){
   #bubble-nav{
     position:absolute;
-    inset: 20% 8% 12%;
+    inset: 35% 8% 12%;
     display:grid;
     grid-template-columns: 1fr 1fr;
     grid-template-rows: 1fr 1fr;
@@ -496,8 +519,10 @@ body{
   <canvas id="boil-canvas" aria-hidden="true"></canvas>
 
   <header id="masthead">
-    <h1>Chefmyklove</h1>
-    <p id="tagline">Custom software from a guy who used to work the line.</p>
+    <h1>ChefMyKLove</h1>
+    <p class="name-line">Custom Software Solutions</p>
+    <p class="name-sub">+ Digital Management</p>
+    <p id="tagline">Ran kitchens for thirty years. Never served a half-finished plate. Never ship a half-finished build.</p>
   </header>
 
   <nav id="bubble-nav" aria-label="Site sections">
@@ -751,6 +776,15 @@ body{
     stageEl.classList.add('kitchen-visible');
     document.getElementById('boil-again').hidden =
       window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    // Let the bubbles finish their CSS pop-in (opacity/transform 0.7s)
+    // before physics measures their position and takes over. The
+    // existence check happens inside the callback, not here - on the
+    // session-skip instant-resolve path this runs during initial parse,
+    // before the later script block that defines the function has
+    // executed yet, so checking now would silently skip it forever.
+    setTimeout(function() {
+      if (window.initBubblePhysicsOnce) window.initBubblePhysicsOnce();
+    }, 750);
   }
 
   function requestSkip() {
@@ -1172,6 +1206,168 @@ body{
       requestAnimationFrame(tick);
     }
     requestAnimationFrame(tick);
+  })();
+</script>
+
+<script>
+  // Bubble-smashing physics: once resolved, the four nav bubbles plus
+  // half a dozen small decorative bubbles tumble and collide with real
+  // circle-circle impulse physics, then settle wherever they come to
+  // rest - they never spring back to a scripted "home" position.
+  // Desktop only (mobile keeps the static 2x2 grid); skipped entirely
+  // under prefers-reduced-motion.
+  (function() {
+    var physicsStarted = false;
+
+    window.initBubblePhysicsOnce = function() {
+      if (physicsStarted) return;
+      if (window.innerWidth <= 700) return;
+      if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+      physicsStarted = true;
+
+      var stage = document.getElementById('stage');
+      var nav = document.getElementById('bubble-nav');
+      var navBubbles = Array.prototype.slice.call(document.querySelectorAll('.bubble'));
+      var masthead = document.getElementById('masthead');
+      var boilAgain = document.getElementById('boil-again');
+
+      var DECO_COUNT = 6;
+      var decoEls = [];
+      for (var i = 0; i < DECO_COUNT; i++) {
+        var deco = document.createElement('div');
+        deco.className = 'bubble bubble-deco';
+        deco.setAttribute('aria-hidden', 'true');
+        var d = 26 + Math.random() * 54; // 26-80px diameter
+        deco.style.width = d + 'px';
+        deco.style.height = d + 'px';
+        nav.appendChild(deco);
+        decoEls.push(deco);
+      }
+
+      var fieldRect = stage.getBoundingClientRect();
+      var fieldW = fieldRect.width, fieldH = fieldRect.height;
+      var marginSide = 24;
+      var marginTop = masthead.getBoundingClientRect().bottom - fieldRect.top + 20;
+      var marginBottom = fieldRect.bottom - boilAgain.getBoundingClientRect().top + 20;
+
+      var DAMPING = 0.985;
+      var RESTITUTION = 0.88;
+      var SLOW_SPEED = 0.35;
+
+      function makeBody(el, x, y, r) {
+        var angle = Math.random() * Math.PI * 2;
+        var speed = 26 + Math.random() * 34;
+        return {
+          el: el, x: x, y: y, r: r,
+          vx: Math.cos(angle) * speed,
+          vy: Math.sin(angle) * speed,
+          home: { x: x, y: y },
+          ampX: 6 + Math.random() * 8,
+          ampY: 6 + Math.random() * 8,
+          freqX: 0.12 + Math.random() * 0.12,
+          freqY: 0.12 + Math.random() * 0.12,
+          phaseX: Math.random() * Math.PI * 2,
+          phaseY: Math.random() * Math.PI * 2,
+          state: 'excited'
+        };
+      }
+
+      var bodies = [];
+
+      navBubbles.forEach(function(el) {
+        var r = el.getBoundingClientRect();
+        var cx = r.left - fieldRect.left + r.width / 2;
+        var cy = r.top - fieldRect.top + r.height / 2;
+        // The CSS ambient-bob animation and this physics loop both drive
+        // `transform` - a running CSS animation wins over inline style,
+        // so it has to come off before physics can take over positioning.
+        el.classList.remove('ambient');
+        el.style.position = 'absolute';
+        el.style.top = '0';
+        el.style.left = '0';
+        bodies.push(makeBody(el, cx, cy, r.width / 2));
+      });
+
+      decoEls.forEach(function(el) {
+        var d = parseFloat(el.style.width);
+        var r = d / 2;
+        var x = marginSide + r + Math.random() * Math.max(10, fieldW - marginSide * 2 - d);
+        var y = marginTop + r + Math.random() * Math.max(10, fieldH - marginTop - marginBottom - d);
+        el.style.position = 'absolute';
+        el.style.top = '0';
+        el.style.left = '0';
+        bodies.push(makeBody(el, x, y, r));
+      });
+
+      function render(b) {
+        b.el.style.transform = 'translate(' + (b.x - b.r).toFixed(1) + 'px, ' + (b.y - b.r).toFixed(1) + 'px)';
+      }
+      bodies.forEach(render);
+
+      function step(now) {
+        var t = now / 1000;
+
+        for (var k = 0; k < bodies.length; k++) {
+          var idleB = bodies[k];
+          if (idleB.state === 'idle') {
+            idleB.x = idleB.home.x + idleB.ampX * Math.sin(t * idleB.freqX * Math.PI * 2 + idleB.phaseX);
+            idleB.y = idleB.home.y + idleB.ampY * Math.sin(t * idleB.freqY * Math.PI * 2 + idleB.phaseY);
+          }
+        }
+
+        for (var i = 0; i < bodies.length; i++) {
+          for (var j = i + 1; j < bodies.length; j++) {
+            var a = bodies[i], b = bodies[j];
+            var dx = b.x - a.x, dy = b.y - a.y;
+            var dist = Math.sqrt(dx * dx + dy * dy) || 1;
+            var minDist = a.r + b.r;
+            if (dist < minDist) {
+              var nx = dx / dist, ny = dy / dist;
+              var overlap = minDist - dist;
+              a.x -= nx * overlap * 0.5; a.y -= ny * overlap * 0.5;
+              b.x += nx * overlap * 0.5; b.y += ny * overlap * 0.5;
+              var relVx = b.vx - a.vx, relVy = b.vy - a.vy;
+              var relSpeed = relVx * nx + relVy * ny;
+              if (relSpeed < 0) {
+                var impulse = -(1 + RESTITUTION) * relSpeed / 2;
+                a.vx -= impulse * nx; a.vy -= impulse * ny;
+                b.vx += impulse * nx; b.vy += impulse * ny;
+              }
+              a.state = 'excited';
+              b.state = 'excited';
+            }
+          }
+        }
+
+        for (var m = 0; m < bodies.length; m++) {
+          var bb = bodies[m];
+          if (bb.state !== 'excited') { render(bb); continue; }
+
+          bb.vx *= DAMPING; bb.vy *= DAMPING;
+          bb.x += bb.vx; bb.y += bb.vy;
+
+          if (bb.x < marginSide + bb.r) { bb.x = marginSide + bb.r; bb.vx = Math.abs(bb.vx) * RESTITUTION; }
+          else if (bb.x > fieldW - marginSide - bb.r) { bb.x = fieldW - marginSide - bb.r; bb.vx = -Math.abs(bb.vx) * RESTITUTION; }
+          if (bb.y < marginTop + bb.r) { bb.y = marginTop + bb.r; bb.vy = Math.abs(bb.vy) * RESTITUTION; }
+          else if (bb.y > fieldH - marginBottom - bb.r) { bb.y = fieldH - marginBottom - bb.r; bb.vy = -Math.abs(bb.vy) * RESTITUTION; }
+
+          var speed = Math.abs(bb.vx) + Math.abs(bb.vy);
+          if (speed < SLOW_SPEED) {
+            // Settle exactly where it stopped - never springs back to
+            // its original scripted position.
+            bb.state = 'idle';
+            bb.vx = 0; bb.vy = 0;
+            bb.home = { x: bb.x, y: bb.y };
+            bb.phaseX = -t * bb.freqX * Math.PI * 2;
+            bb.phaseY = -t * bb.freqY * Math.PI * 2;
+          }
+          render(bb);
+        }
+
+        requestAnimationFrame(step);
+      }
+      requestAnimationFrame(step);
+    };
   })();
 </script>
 
