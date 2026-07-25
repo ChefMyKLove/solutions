@@ -65,7 +65,10 @@
       "Read(//c/Users/micha/**)",
       "Bash(find \"d:/Desktop/Portfolio-Page\" -maxdepth 2 -type f 2>/dev/null | head -40 *)",
       "Read(//d/Desktop/Portfolio-Page/**)",
-      "Bash(node -e ' *)"
+      "Bash(node -e ' *)",
+      "Bash(git rm *)",
+      "Read(//c/Users/micha/.claude/projects/d--Desktop-software-solutions/memory/**)",
+      "Bash(git push *)"
     ],
     "additionalDirectories": [
       "d:\\Desktop\\software solutions",
