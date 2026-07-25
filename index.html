@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>ChefMyKLove — Custom Software Solutions + Digital Management</title>
 <meta property="og:title" content="ChefMyKLove — Custom Software Solutions + Digital Management">
-<meta property="og:description" content="Ran kitchens for thirty years. Never served a half-finished plate. Never ship a half-finished build.">
+<meta property="og:description" content="I ran kitchens for thirty years. Now I'm cooking up your next great web experience.">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://solutions.chefmyklove.com">
 <meta name="twitter:card" content="summary">
@@ -80,81 +80,146 @@ body{
   inset:0;
   width:100%;
   height:100%;
-  transition: opacity 0.9s ease;
+  /* Same duration as #kitchen-bg's fade-in (1.3s) so the two run as one
+     simultaneous crossfade - the photo arriving and the pot dissolving
+     into it read as a single event instead of two separate ones. */
+  transition: opacity 1.3s ease;
 }
-#stage.resolved #boil-canvas{ opacity:0; pointer-events:none; }
+/* Tied to .pot-settled (added in the same breath as .kitchen-visible),
+   not .resolved (which doesn't land until ~6s later once every DOM
+   bubble has emerged) - see beginPercolateReveal/resolveStage. */
+#stage.pot-settled #boil-canvas{ opacity:0.32; pointer-events:none; }
 
-#masthead{
-  position:absolute;
-  top:12%;
-  left:50%;
-  transform: translateX(-50%);
+/* Compound selectors (.bubble.bubble-content, not just .bubble-content) -
+   these need to beat the base .bubble rule's font-size/color/weight/
+   uppercase/letter-spacing regardless of source order. Two classes on
+   the same element outrank one, so this wins no matter where either
+   rule sits in the file - a plain .bubble-content{} at equal specificity
+   silently lost that fight to whichever rule came later. */
+.bubble.bubble-content{
+  display:flex;
+  align-items:center;
+  justify-content:center;
   text-align:center;
-  color: var(--paper);
-  opacity:0;
-  transition: opacity 0.9s ease 0.3s, color 0.9s ease 0.3s;
-  width:90%;
-  max-width:640px;
+  padding: 24px;
+  line-height:1.3;
+  text-transform: none;
+  /* These three carry a full sentence/paragraph, not a one-word label -
+     a bit more tint than the base .bubble keeps the paragraph readable
+     without losing the see-through effect entirely. */
+  background: rgba(247,243,233,0.26);
 }
-#stage.resolved #masthead{ opacity:1; color: var(--paper); }
-#masthead h1{
+.bubble.bubble-brand{
+  width: clamp(190px, 18vw, 215px);
+  height: clamp(190px, 18vw, 215px);
   font-family:'Archivo Black', 'Space Mono', monospace;
-  font-size: clamp(32px, 7vw, 56px);
-  letter-spacing: -1px;
+  font-size: clamp(22px, 3vw, 30px);
+  font-weight: 400;
+  letter-spacing: -0.5px;
   color: var(--ember);
-  text-shadow: 0 2px 14px rgba(0,0,0,0.55);
+  /* Static fallback position (reduced-motion, or the instant before
+     physics takes over and erupts everything from the pot instead) -
+     spread across the now-empty top band so nothing overlaps. */
+  top: 19%; left: 20%;
 }
-#masthead .name-line{
-  margin-top: 10px;
+.bubble.bubble-bizname{
+  width: clamp(195px, 19vw, 220px);
+  height: clamp(195px, 19vw, 220px);
   font-family:'Space Mono', monospace;
   font-weight: 700;
-  font-size: clamp(14px, 2.4vw, 18px);
-  letter-spacing: 1.5px;
-  text-transform: uppercase;
-  text-shadow: 0 1px 8px rgba(0,0,0,0.6);
-}
-#masthead .name-sub{
-  margin-top: 3px;
-  font-family:'Space Mono', monospace;
-  font-size: clamp(11px, 1.8vw, 13px);
+  font-size: clamp(11px, 1.5vw, 14px);
   letter-spacing: 1px;
   text-transform: uppercase;
-  opacity: 0.72;
-  text-shadow: 0 1px 8px rgba(0,0,0,0.6);
+  color: var(--char);
+  top: 21%; left: 50%;
 }
-#masthead #tagline{
-  margin-top: 16px;
+.bubble.bubble-tagline{
+  width: clamp(200px, 20vw, 225px);
+  height: clamp(200px, 20vw, 225px);
   font-family:'Work Sans', sans-serif;
   font-style: italic;
-  font-size: clamp(13px, 2vw, 16px);
-  letter-spacing: 0.2px;
-  line-height: 1.5;
-  text-shadow: 0 1px 8px rgba(0,0,0,0.6);
+  font-weight: 400;
+  color: var(--char);
+  /* Thinner strokes than the bold uppercase mono used elsewhere (and a
+     full sentence, not one word) - needs its own bump past the shared
+     .bubble-content tint plus a fuller 8-direction outline (vs. the base
+     .bubble's 4-diagonal) since italic strokes carry more edge angles. */
+  background: rgba(247,243,233,0.36);
+  text-shadow:
+    -1px 0 0 rgba(247,243,233,0.98), 1px 0 0 rgba(247,243,233,0.98),
+    0 -1px 0 rgba(247,243,233,0.98), 0 1px 0 rgba(247,243,233,0.98),
+    -1px -1px 0 rgba(247,243,233,0.98), 1px -1px 0 rgba(247,243,233,0.98),
+    -1px 1px 0 rgba(247,243,233,0.98), 1px 1px 0 rgba(247,243,233,0.98),
+    0 1px 3px rgba(31,27,22,0.4);
+  font-size: clamp(12px, 1.5vw, 14.5px);
+  line-height: 1.4;
+  top: 19%; left: 80%;
 }
 
 #bubble-nav{
   position:absolute;
   inset:0;
+  /* Lets children's rotateX/rotateY (the mouse-tilt effect) actually
+     read as 3D instead of a flat skew - the parent needs a perspective
+     origin for its children's 3D transforms to project against. */
+  perspective: 1000px;
 }
 .bubble{
   position:absolute;
   width: clamp(120px, 16vw, 170px);
   height: clamp(120px, 16vw, 170px);
   border-radius:50%;
-  background: var(--paper);
-  border: 2px solid var(--ember);
+  /* Real glassmorphism: near-transparent tint + backdrop-filter, so each
+     bubble actually blurs and lightens whatever's truly behind it right
+     now - the boil canvas, other bubbles, the kitchen photo - instead of
+     painting on a hardcoded copy of the background photo. Blur is down
+     to 4px (was 18px, then 8px) - barely there, just enough to soften
+     hard edges in the backdrop without smearing it into mush; brightness()
+     still compensates for the kitchen photo running dark (#kitchen-bg is
+     brightness(0.34)), and saturate() is the "amplify" - colors behind
+     the glass read richer than the flat scene around it, like a lens.
+     At this little blur, legibility can't lean on the backdrop being
+     softened at all - it's carried entirely by the text-shadow stack: a
+     crisp, zero-blur 1px outline in four diagonal directions (a sticker-
+     style stroke, not a glow - glows are what read as "muddy") plus a
+     faint dark shadow underneath for the rare bright patch of backdrop. */
+  background: rgba(247,243,233,0.16);
+  -webkit-backdrop-filter: blur(4px) saturate(1.7) brightness(1.35);
+  backdrop-filter: blur(4px) saturate(1.7) brightness(1.35);
+  border: 1.5px solid rgba(184,69,46,0.55);
   color: var(--char);
   font-family:'Space Mono', monospace;
   font-size: 13px;
   font-weight:700;
   letter-spacing: 1px;
   text-transform: uppercase;
+  text-shadow:
+    -1px -1px 0 rgba(247,243,233,0.95),
+     1px -1px 0 rgba(247,243,233,0.95),
+    -1px  1px 0 rgba(247,243,233,0.95),
+     1px  1px 0 rgba(247,243,233,0.95),
+     0 1px 2px rgba(31,27,22,0.35);
   cursor:pointer;
   opacity:0;
   pointer-events:none;
   transform: translate(-50%, -50%) scale(0.3);
-  transition: opacity 0.7s ease, transform 0.7s ease;
-  box-shadow: 0 10px 24px rgba(0,0,0,0.18);
+  transition: opacity 0.7s ease, transform 0.7s ease, background 0.3s ease;
+  box-shadow: 0 10px 24px rgba(0,0,0,0.18), inset 0 1px 1px rgba(255,255,255,0.5), inset 0 -14px 22px rgba(0,0,0,0.05);
+}
+/* Specular highlight that slides across the surface as a bubble tilts
+   (--glare-x/--glare-y are set in JS alongside the rotateX/rotateY tilt
+   itself) - a static highlight would break the 3D illusion the moment
+   the bubble rotates, since a real curved/glossy surface's hotspot moves
+   with the viewing angle. position:absolute keeps it out of the flex
+   layout .bubble-content uses to center its text. */
+.bubble::before{
+  content:'';
+  position:absolute;
+  inset:0;
+  border-radius:50%;
+  pointer-events:none;
+  background: radial-gradient(circle at calc(50% + var(--glare-x, 0) * 1%) calc(50% + var(--glare-y, 0) * 1%), rgba(255,255,255,0.4), rgba(255,255,255,0) 55%);
+  mix-blend-mode: screen;
 }
 #stage.resolved .bubble{ opacity:1; pointer-events:auto; transform: translate(-50%, -50%) scale(1); }
 .bubble:hover, .bubble:focus-visible{
@@ -167,9 +232,51 @@ body{
 .bubble[data-panel="pass"]{ top: 81%; left: 30%; }
 .bubble[data-panel="foh"]{  top: 51%; left: 72%; }
 .bubble-deco{
-  pointer-events: none;
-  cursor: default;
+  cursor: grab;
 }
+.bubble{ cursor: grab; }
+.bubble[data-panel]{ cursor: pointer; }
+.bubble.bubble-rainbow-link{
+  background: conic-gradient(from 0deg, #ff6b6b, #ffd166, #8ee06c, #5ec8e6, #7d8bf7, #d68af0, #ff6b6b);
+  border: 1.5px solid rgba(255,255,255,0.6);
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+  box-shadow: 0 10px 24px rgba(0,0,0,0.25), inset 0 1px 1px rgba(255,255,255,0.6), 0 0 20px rgba(216,138,240,0.35);
+  cursor: pointer;
+}
+/* Must come after .bubble-rainbow-link so an active drag's grabbing
+   cursor still wins over the link's pointer cursor (equal specificity,
+   later rule wins). */
+.bubble.dragging{ cursor: grabbing; }
+
+.ambient-pop{
+  position:absolute;
+  border-radius:50%;
+  pointer-events:none;
+  border: 1px solid rgba(247,243,233,0.45);
+  background: radial-gradient(circle at 30% 30%, rgba(255,238,204,0.3), rgba(247,243,233,0.04));
+  opacity:0;
+  transform: translateY(0) scale(0.5);
+  transition: opacity 1.1s ease, transform 1.6s ease-out;
+}
+.ambient-pop.rise{
+  opacity:0.7;
+  transform: translateY(-46px) scale(1);
+}
+.ambient-pop.pop{
+  opacity:0;
+  transform: translateY(-60px) scale(1.5);
+}
+.ambient-pop-rainbow{
+  border: 1px solid rgba(255,255,255,0.55);
+  background:
+    radial-gradient(circle at 32% 28%, rgba(255,255,255,0.55), rgba(255,255,255,0) 40%),
+    conic-gradient(from 0deg, #ff6b6b, #ffd166, #8ee06c, #5ec8e6, #7d8bf7, #d68af0, #ff6b6b);
+  background-blend-mode: screen;
+  opacity:0;
+}
+.ambient-pop-rainbow.rise{ opacity:0.55; }
+.ambient-pop-rainbow.pop{ opacity:0; }
 
 @keyframes bob{
   0%, 100%{ transform: translate(-50%, -50%) translate(0, 0) rotate(0deg); }
@@ -207,12 +314,13 @@ body{
 #boil-again:hover{ opacity:1; }
 
 @media (max-width: 700px){
+  body{ overflow-y:auto; overflow-x:hidden; }
   #bubble-nav{
     position:absolute;
     inset: 35% 8% 12%;
     display:grid;
     grid-template-columns: 1fr 1fr;
-    grid-template-rows: 1fr 1fr;
+    grid-auto-rows: min-content;
     gap: 16px;
     place-items:center;
   }
@@ -220,6 +328,18 @@ body{
   #stage.resolved .bubble{ transform: scale(1); }
   .bubble:hover, .bubble:focus-visible{ transform: scale(1.05); }
   .bubble.ambient{ animation-name: bob-static; }
+  /* The desktop clamp() minimums (180-270px) are sized for vw scaling
+     that only kicks in above ~900px - below that they clamp to their
+     floor, which is far too large for a narrow phone screen. */
+  .bubble.bubble-brand{ width:140px; height:140px; font-size:18px; }
+  .bubble.bubble-bizname{ width:150px; height:150px; font-size:10px; }
+  .bubble.bubble-tagline{ width:150px; height:150px; font-size:10.5px; }
+  /* The grid can overflow past #stage's own 100vh box (that's fine -
+     the page scrolls to reach it), so a bottom-anchored button ends up
+     colliding with whichever bubble the scroll happens to land on.
+     The reserved empty space above the grid (top 35% inset) is the
+     one spot guaranteed clear regardless of scroll position. */
+  #boil-again{ position:fixed; top:12px; bottom:auto; z-index:5; }
 }
 
 .panel{
@@ -518,14 +638,10 @@ body{
   <div id="grain-overlay" aria-hidden="true"></div>
   <canvas id="boil-canvas" aria-hidden="true"></canvas>
 
-  <header id="masthead">
-    <h1>ChefMyKLove</h1>
-    <p class="name-line">Custom Software Solutions</p>
-    <p class="name-sub">+ Digital Management</p>
-    <p id="tagline">Ran kitchens for thirty years. Never served a half-finished plate. Never ship a half-finished build.</p>
-  </header>
-
   <nav id="bubble-nav" aria-label="Site sections">
+    <h1 class="bubble bubble-content bubble-brand" id="bubble-brand">ChefMyKLove</h1>
+    <div class="bubble bubble-content bubble-bizname" id="bubble-bizname">Custom Software Solutions<br>+ Digital Management</div>
+    <div class="bubble bubble-content bubble-tagline" id="bubble-tagline">I ran kitchens for thirty years. Now I'm cooking up your next great web experience.</div>
     <button class="bubble" data-panel="menu">The Menu</button>
     <button class="bubble" data-panel="chef">The Chef</button>
     <button class="bubble" data-panel="pass">The Pass</button>
@@ -572,32 +688,55 @@ body{
   function potGeometry(w, h) {
     var potW = w * 0.34;
     var potX = w / 2;
-    var potTop = h * 0.60;
-    var potBottom = h * 0.94;
+    // Pushed down near the bottom edge (was 0.60-0.94, stranding it in
+    // the middle of the frame) - reads as a pot resting on a stove near
+    // the footer instead of floating in open space.
+    var potTop = h * 0.74;
+    var potBottom = h * 0.99;
+    // Straight-sided body (stockpot, not a tapered bucket) - top and
+    // bottom share the same half-width so the walls run vertical. The
+    // handles anchor to these same corners, so straight walls also put
+    // the handles flush against the body instead of floating off a
+    // slanted edge.
+    var halfWidth = potW * 0.42;
     return {
       potX: potX,
       potW: potW,
       potTop: potTop,
       potBottom: potBottom,
-      mouthHalfWidth: potW * 0.42,
-      potLeftTop: potX - potW * 0.42,
-      potRightTop: potX + potW * 0.42,
-      potLeftBottom: potX - potW * 0.5,
-      potRightBottom: potX + potW * 0.5
+      mouthHalfWidth: halfWidth,
+      potLeftTop: potX - halfWidth,
+      potRightTop: potX + halfWidth,
+      potLeftBottom: potX - halfWidth,
+      potRightBottom: potX + halfWidth
     };
   }
 
   function createAmbientBubble(rng, w, h) {
     var pot = potGeometry(w, h);
+    // Weighted size tiers instead of one tiny flat range - mostly small
+    // foam, but a real slice of medium and occasional big ones mixed in.
+    // Without this, the canvas boil reads as uniformly tiny right up
+    // until the much larger DOM bubbles erupt from the same pot mouth,
+    // which lands as a jarring size jump rather than a continuation.
+    var sizeRoll = rng();
+    var r = sizeRoll < 0.55 ? 2 + rng() * 4
+          : sizeRoll < 0.85 ? 7 + rng() * 7
+          : 15 + rng() * 11;
     return {
       x: pot.potX + (rng() - 0.5) * pot.mouthHalfWidth * 1.5,
       y: pot.potTop - 1,
-      r: 2 + rng() * 4,
-      vy: -(24 + rng() * 30),
+      r: r,
+      // Bigger bubbles drift up a little slower than small ones, like
+      // they carry more weight.
+      vy: -Math.max(18, 54 - r * 1.2 + (rng() * 10 - 5)),
       wobblePhase: rng() * Math.PI * 2,
       wobbleSpeed: 1 + rng() * 2,
       popAtY: h * 0.16 + rng() * h * 0.10,
-      popped: false
+      popped: false,
+      // Same rare-rainbow treatment as the ambient-pop DOM bubbles, so the
+      // effect isn't exclusive to those - it shows up throughout the boil.
+      rainbow: rng() < 0.12
     };
   }
 
@@ -609,7 +748,7 @@ body{
     return {
       x: x, y: y, r: b.r, vy: b.vy,
       wobblePhase: wobblePhase, wobbleSpeed: b.wobbleSpeed,
-      popAtY: b.popAtY, popped: popped
+      popAtY: b.popAtY, popped: popped, rainbow: b.rainbow
     };
   }
 </script>
@@ -633,11 +772,24 @@ body{
     resize();
     window.addEventListener('resize', resize);
 
-    var maxBubbles = window.innerWidth < 700 ? 14 : 26;
+    var maxBubblesFinal = window.innerWidth < 700 ? 20 : 40;
+    var boilStartTime = null;
+    var lastSpawnTime = 0;
 
-    function spawnIfNeeded(w, h) {
-      if (bubbles.length < maxBubbles) {
+    // Starts as a handful of individually-noticeable bubbles and ramps up
+    // to the full density over the ~6s of ambient-only boil (3s dark
+    // stage + 3s percolating over the photo before content/nav bubbles
+    // join in) - reads as the boil building rather than an instant sheet
+    // of tiny bubbles all at once.
+    function spawnIfNeeded(w, h, now) {
+      if (boilStartTime === null) boilStartTime = now;
+      var elapsed = now - boilStartTime;
+      var rampT = Math.min(elapsed / 6000, 1);
+      var target = Math.round(3 + rampT * (maxBubblesFinal - 3));
+      var cooldown = 320 - rampT * 230; // 320ms apart early on, 90ms once boiling hard
+      if (bubbles.length < target && now - lastSpawnTime > cooldown) {
         bubbles.push(createAmbientBubble(rng, w, h));
+        lastSpawnTime = now;
       }
     }
 
@@ -698,14 +850,19 @@ body{
       ctx.strokeStyle = 'rgba(180,180,186,0.55)';
       ctx.stroke();
 
-      // Handles
+      // Handles - a semicircle from 90deg to 270deg starts and ends with
+      // cos(theta)=0, i.e. both ends land exactly on the vertical wall
+      // (x === cx), so the loop reads as riveted to the body at a top and
+      // bottom point rather than floating off it. Left bulges out through
+      // 180deg (default clockwise), right mirrors it by sweeping the same
+      // two angles the other way (anticlockwise), out through 0deg.
       ctx.lineWidth = 5;
       ctx.strokeStyle = 'rgba(160,160,166,0.6)';
       ctx.beginPath();
-      ctx.arc(pot.potLeftTop, pot.potTop + pot.potW * 0.05, pot.potW * 0.09, Math.PI * 0.25, Math.PI * 1.15);
+      ctx.arc(pot.potLeftTop, pot.potTop + pot.potW * 0.16, pot.potW * 0.1, Math.PI * 0.5, Math.PI * 1.5);
       ctx.stroke();
       ctx.beginPath();
-      ctx.arc(pot.potRightTop, pot.potTop + pot.potW * 0.05, pot.potW * 0.09, Math.PI * 1.85, Math.PI * 0.75, true);
+      ctx.arc(pot.potRightTop, pot.potTop + pot.potW * 0.16, pot.potW * 0.1, Math.PI * 0.5, Math.PI * 1.5, true);
       ctx.stroke();
 
       // Rim / mouth of the pot (the broth surface sits just inside this)
@@ -723,15 +880,38 @@ body{
       ctx.stroke();
     }
 
+    // Same conic rainbow used by the ambient-pop DOM bubbles (.ambient-pop-
+    // rainbow), redrawn in Canvas 2D so the two bubble systems visually
+    // match. createConicGradient is the one modern-only API here - guarded
+    // so older browsers just get the plain bubble instead of an error.
+    var supportsConic = typeof ctx.createConicGradient === 'function';
+
     function drawBubble(b) {
-      var grad = ctx.createRadialGradient(b.x - b.r * 0.3, b.y - b.r * 0.3, 0, b.x, b.y, b.r);
-      grad.addColorStop(0, 'rgba(255,238,204,0.5)');
-      grad.addColorStop(1, 'rgba(247,243,233,0.08)');
       ctx.beginPath();
       ctx.arc(b.x, b.y, b.r, 0, Math.PI * 2);
-      ctx.fillStyle = grad;
-      ctx.fill();
-      ctx.strokeStyle = 'rgba(247,243,233,0.65)';
+      if (b.rainbow && supportsConic) {
+        var conic = ctx.createConicGradient(0, b.x, b.y);
+        conic.addColorStop(0, '#ff6b6b');
+        conic.addColorStop(0.17, '#ffd166');
+        conic.addColorStop(0.34, '#8ee06c');
+        conic.addColorStop(0.5, '#5ec8e6');
+        conic.addColorStop(0.67, '#7d8bf7');
+        conic.addColorStop(0.84, '#d68af0');
+        conic.addColorStop(1, '#ff6b6b');
+        ctx.save();
+        ctx.globalAlpha = 0.5;
+        ctx.fillStyle = conic;
+        ctx.fill();
+        ctx.restore();
+        ctx.strokeStyle = 'rgba(255,255,255,0.7)';
+      } else {
+        var grad = ctx.createRadialGradient(b.x - b.r * 0.3, b.y - b.r * 0.3, 0, b.x, b.y, b.r);
+        grad.addColorStop(0, 'rgba(255,238,204,0.5)');
+        grad.addColorStop(1, 'rgba(247,243,233,0.08)');
+        ctx.fillStyle = grad;
+        ctx.fill();
+        ctx.strokeStyle = 'rgba(247,243,233,0.65)';
+      }
       ctx.lineWidth = 1;
       ctx.stroke();
     }
@@ -746,7 +926,7 @@ body{
       ctx.clearRect(0, 0, w, h);
       drawPotAndBurner(w, h, t);
 
-      spawnIfNeeded(w, h);
+      spawnIfNeeded(w, h, t);
       bubbles = bubbles
         .map(function(b) { return stepAmbientBubble(b, dt); })
         .filter(function(b) { return !b.popped; });
@@ -768,27 +948,66 @@ body{
   var boilHandle = null;
   var skipRequested = false;
 
+  function startPhysicsNow() {
+    // The existence check happens inside the callback, not at the call
+    // site - on the session-skip instant-resolve path this can run
+    // during initial script parse, before the later script block that
+    // defines the function has executed yet, so checking now would
+    // silently skip it forever. Zero delay still defers to the next
+    // tick (letting every script tag finish), while firing before the
+    // .resolved CSS transition has a chance to paint a frame - so
+    // bubbles never visibly fade in at a stale CSS position first.
+    setTimeout(function() {
+      if (window.initBubblePhysicsOnce) window.initBubblePhysicsOnce();
+    }, 0);
+  }
+
   function resolveStage() {
-    if (boilHandle) { boilHandle.stop(); boilHandle = null; }
+    // boilHandle is deliberately left running here - the ambient boil
+    // (pot + rising bubbles) keeps going as a translucent backdrop layer
+    // that complements the settled DOM bubbles and the ambient-pop layer,
+    // rather than cutting out abruptly the moment the DOM bubbles arrive.
+    startPhysicsNow();
     stageEl.classList.add('resolved');
     // Once shown, the kitchen background stays visible through every
     // future replay - only .resolved (canvas/masthead/bubbles) toggles.
     stageEl.classList.add('kitchen-visible');
+    // Covers the instant-resolve paths (reduced motion, already-boiled
+    // this session, or the tail end of a "Boil Again" replay) that never
+    // go through beginPercolateReveal - harmless no-op if already added.
+    stageEl.classList.add('pot-settled');
     document.getElementById('boil-again').hidden =
       window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    // Let the bubbles finish their CSS pop-in (opacity/transform 0.7s)
-    // before physics measures their position and takes over. The
-    // existence check happens inside the callback, not here - on the
-    // session-skip instant-resolve path this runs during initial parse,
-    // before the later script block that defines the function has
-    // executed yet, so checking now would silently skip it forever.
+    // Same deferred-existence-check reasoning as startPhysicsNow - this
+    // can run before the later script block that defines it has parsed.
     setTimeout(function() {
-      if (window.initBubblePhysicsOnce) window.initBubblePhysicsOnce();
-    }, 750);
+      if (window.startAmbientPopsOnce) window.startAmbientPopsOnce();
+    }, 0);
   }
 
   function requestSkip() {
     skipRequested = true;
+  }
+
+  // Six seconds, splash (kitchen photo starting to fade in) to fully
+  // resolved: 3s of pure ambient percolation (photo finishes fading in,
+  // pot just bubbles) before any content/nav/decorative bubble starts
+  // rising, then 3s for all of them to emerge, rise, and settle before
+  // the pot itself fades away.
+  var AMBIENT_ONLY_MS = 3000;
+  var BUBBLES_EMERGE_MS = 3000;
+
+  function beginPercolateReveal() {
+    stageEl.classList.add('kitchen-visible');
+    // Added in the same breath as kitchen-visible, not at the end of
+    // resolveStage 6s later - the pot's fade-to-translucent and the
+    // photo's fade-in now run as one simultaneous crossfade (same
+    // duration in CSS) instead of two visibly separate events.
+    stageEl.classList.add('pot-settled');
+    setTimeout(function() {
+      if (window.initBubblePhysicsOnce) window.initBubblePhysicsOnce();
+    }, AMBIENT_ONLY_MS);
+    setTimeout(resolveStage, AMBIENT_ONLY_MS + BUBBLES_EMERGE_MS);
   }
 
   function runBoilSequence() {
@@ -819,10 +1038,18 @@ body{
     var start = performance.now();
     (function poll() {
       var elapsed = performance.now() - start;
-      if (skipRequested || elapsed >= BOIL_DURATION_MS) {
+      if (skipRequested) {
+        // Impatience wins: skip goes straight to the fully resolved
+        // state, no percolate-over-the-photo phase.
         cleanupSkipListeners();
         sessionStorage.setItem('boiled', '1');
         resolveStage();
+        return;
+      }
+      if (elapsed >= BOIL_DURATION_MS) {
+        cleanupSkipListeners();
+        sessionStorage.setItem('boiled', '1');
+        beginPercolateReveal();
         return;
       }
       requestAnimationFrame(poll);
@@ -832,7 +1059,15 @@ body{
   function replayBoilManually() {
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
     stageEl.classList.remove('resolved');
+    // Un-fades the canvas back to full opacity for the replay's fresh
+    // boil - resolveStage re-adds this once the replay finishes, fading
+    // it back down in sync with the rest of the resolved state again.
+    stageEl.classList.remove('pot-settled');
     skipRequested = false;
+    // The ambient boil from the last run is still going (resolveStage no
+    // longer stops it) - tear it down before starting a fresh one so we
+    // don't end up with two overlapping loops both spawning bubbles.
+    if (boilHandle) { boilHandle.stop(); boilHandle = null; }
     boilHandle = startBoilRender(document.getElementById('boil-canvas'));
 
     var skipListener = function() { requestSkip(); cleanupSkipListeners(); };
@@ -1210,10 +1445,16 @@ body{
 </script>
 
 <script>
-  // Bubble-smashing physics: once resolved, the four nav bubbles plus
-  // half a dozen small decorative bubbles tumble and collide with real
-  // circle-circle impulse physics, then settle wherever they come to
-  // rest - they never spring back to a scripted "home" position.
+  // Bubble emergence: once resolved, the content bubbles, nav bubbles,
+  // and half a dozen decorative bubbles each rise individually out of
+  // the pot's mouth - like the rest of the boil's bubbles, some of them
+  // just happen to be these - growing as they rise and easing into a
+  // pre-planned, non-overlapping resting spot (content bubbles near the
+  // top, everything else scattered below). No collision or bouncing
+  // during the rise. Once settled, the same bodies are fully
+  // interactive: grab one and fling it like a pool ball into its
+  // neighbors, real circle-circle impulse physics, and it comes to
+  // rest wherever it stops - never springs back to a scripted "home".
   // Desktop only (mobile keeps the static 2x2 grid); skipped entirely
   // under prefers-reduced-motion.
   (function() {
@@ -1227,82 +1468,326 @@ body{
 
       var stage = document.getElementById('stage');
       var nav = document.getElementById('bubble-nav');
-      var navBubbles = Array.prototype.slice.call(document.querySelectorAll('.bubble'));
-      var masthead = document.getElementById('masthead');
+      var scatterBubbles = Array.prototype.slice.call(document.querySelectorAll('.bubble:not(.bubble-content)'));
+      var contentBubbles = Array.prototype.slice.call(document.querySelectorAll('.bubble-content'));
       var boilAgain = document.getElementById('boil-again');
 
-      var DECO_COUNT = 6;
+      // Explicit size tiers instead of one flat random range, so the
+      // field actually reads as varied bubbles rather than a cluster of
+      // similarly-sized ones - a couple rival the real content bubbles,
+      // most stay small-to-medium.
+      var DECO_DIAMETERS = [24, 36, 45, 55, 68, 80, 100, 115, 155];
+      // Rainbow link lands on a different mid-to-small deco bubble every
+      // page load instead of always being the smallest one - excludes
+      // the two largest sizes (115, 155) so it's never one of the big ones.
+      var rainbowLinkPoolSize = DECO_DIAMETERS.length - 2;
+      var rainbowLinkIndex = Math.floor(Math.random() * rainbowLinkPoolSize);
       var decoEls = [];
-      for (var i = 0; i < DECO_COUNT; i++) {
-        var deco = document.createElement('div');
-        deco.className = 'bubble bubble-deco';
-        deco.setAttribute('aria-hidden', 'true');
-        var d = 26 + Math.random() * 54; // 26-80px diameter
+      for (var i = 0; i < DECO_DIAMETERS.length; i++) {
+        // One deco bubble doubles as a real link instead of a purely
+        // decorative circle: a plain rainbow gradient sphere, no label,
+        // that opens naked.chefmyklove.com. It's an <a> (not a div) so a
+        // genuine click just navigates via normal browser behavior - the
+        // existing drag-vs-click suppression in wireDrag() already
+        // prevents that from firing after an actual drag.
+        var isRainbowLink = i === rainbowLinkIndex;
+        var deco = document.createElement(isRainbowLink ? 'a' : 'div');
+        deco.className = isRainbowLink ? 'bubble bubble-deco bubble-rainbow-link' : 'bubble bubble-deco';
+        if (isRainbowLink) {
+          deco.href = 'https://naked.chefmyklove.com';
+          deco.target = '_blank';
+          deco.rel = 'noopener noreferrer';
+          deco.setAttribute('aria-label', 'Visit naked.chefmyklove.com');
+        } else {
+          deco.setAttribute('aria-hidden', 'true');
+        }
+        var d = DECO_DIAMETERS[i] + (Math.random() * 10 - 5); // small jitter
         deco.style.width = d + 'px';
         deco.style.height = d + 'px';
         nav.appendChild(deco);
         decoEls.push(deco);
+        scatterBubbles.push(deco);
       }
 
       var fieldRect = stage.getBoundingClientRect();
       var fieldW = fieldRect.width, fieldH = fieldRect.height;
       var marginSide = 24;
-      var marginTop = masthead.getBoundingClientRect().bottom - fieldRect.top + 20;
+      var marginTop = 24;
       var marginBottom = fieldRect.bottom - boilAgain.getBoundingClientRect().top + 20;
+
+      // Everything rises out of the pot's mouth (same geometry the
+      // canvas boil used) rather than starting scattered - potGeometry()
+      // is a plain top-level function from the canvas script, global.
+      var pot = (typeof potGeometry === 'function')
+        ? potGeometry(fieldW, fieldH)
+        : { potX: fieldW / 2, potTop: fieldH * 0.6 };
+      var eruptX = pot.potX, eruptY = pot.potTop;
 
       var DAMPING = 0.985;
       var RESTITUTION = 0.88;
       var SLOW_SPEED = 0.35;
+      var CLICK_MS = 200, CLICK_PX = 6, MAX_LAUNCH = 90;
 
-      function makeBody(el, x, y, r) {
-        var angle = Math.random() * Math.PI * 2;
-        var speed = 26 + Math.random() * 34;
+      // ---- Pre-planned resting layout: content bubbles in a top band,
+      // everything else scattered below, all non-overlapping (checked
+      // against every bubble placed so far, best-effort after enough
+      // failed attempts rather than looping forever). ----
+      var topBandBottom = fieldH * 0.34;
+      var placed = [];
+      function placeIn(rMin, rMax, xMin, xMax, r) {
+        var attempts = 80;
+        var x, y, ok;
+        for (var a = 0; a < attempts; a++) {
+          x = xMin + r + Math.random() * Math.max(10, (xMax - xMin) - r * 2);
+          y = rMin + r + Math.random() * Math.max(10, rMax - rMin - r * 2);
+          ok = true;
+          for (var i = 0; i < placed.length; i++) {
+            var p = placed[i];
+            if (Math.hypot(x - p.x, y - p.y) < r + p.r + 16) { ok = false; break; }
+          }
+          if (ok) break;
+        }
+        placed.push({ x: x, y: y, r: r });
+        return { x: x, y: y };
+      }
+
+      function makeRisingBody(el, r, target) {
         return {
-          el: el, x: x, y: y, r: r,
-          vx: Math.cos(angle) * speed,
-          vy: Math.sin(angle) * speed,
-          home: { x: x, y: y },
-          ampX: 6 + Math.random() * 8,
-          ampY: 6 + Math.random() * 8,
+          el: el, r: r,
+          x: eruptX, y: eruptY,
+          startX: eruptX, startY: eruptY,
+          targetX: target.x, targetY: target.y,
+          riseStart: null,
+          riseDuration: 950 + Math.random() * 400,
+          wobbleAmp: 14 + Math.random() * 16,
+          wobbleFreq: 1 + Math.random() * 0.9,
+          vx: 0, vy: 0,
+          home: { x: target.x, y: target.y },
+          // Sway radius around home - was 6-14px (up to a 28px-wide swing),
+          // which read as actually drifting rather than idling in place.
+          // It always was bounded/periodic around home, never a permanent
+          // wander - this just tightens the quadrant it swings through.
+          ampX: 3 + Math.random() * 4,
+          ampY: 3 + Math.random() * 4,
           freqX: 0.12 + Math.random() * 0.12,
           freqY: 0.12 + Math.random() * 0.12,
           phaseX: Math.random() * Math.PI * 2,
           phaseY: Math.random() * Math.PI * 2,
-          state: 'excited'
+          state: 'rising',
+          pointerId: null, grabDX: 0, grabDY: 0,
+          pressT: 0, pressX: 0, pressY: 0,
+          samples: [], suppressClick: false
         };
       }
 
       var bodies = [];
 
-      navBubbles.forEach(function(el) {
-        var r = el.getBoundingClientRect();
-        var cx = r.left - fieldRect.left + r.width / 2;
-        var cy = r.top - fieldRect.top + r.height / 2;
-        // The CSS ambient-bob animation and this physics loop both drive
-        // `transform` - a running CSS animation wins over inline style,
-        // so it has to come off before physics can take over positioning.
+      // Adds one body mid-simulation (the render loop is already
+      // running) and pops it in with a quick opacity fade at the pot's
+      // mouth - never via the base CSS opacity transition, which would
+      // fade it in at a stale top/left position first and jump.
+      function addBody(el, r, target) {
         el.classList.remove('ambient');
         el.style.position = 'absolute';
         el.style.top = '0';
         el.style.left = '0';
-        bodies.push(makeBody(el, cx, cy, r.width / 2));
+        el.style.opacity = '0';
+        el.style.pointerEvents = 'auto';
+        var b = makeRisingBody(el, r, target);
+        render(b);
+        el.style.transition = 'opacity 0.3s ease';
+        requestAnimationFrame(function() {
+          requestAnimationFrame(function() { el.style.opacity = '1'; });
+        });
+        bodies.push(b);
+        wireDrag(b);
+        return b;
+      }
+
+      // Every real bubble (content, nav, decorative) emerges on its own,
+      // staggered at an irregular interval - reads as part of the same
+      // boiling flow the canvas ambient bubbles are already doing,
+      // rather than one simultaneous burst.
+      var emergeQueue = [];
+      // Content bubbles cascade in a tight, descending diagonal stack
+      // consolidated in the far upper-left corner (DOM order: brand,
+      // bizname, tagline) - ChefMyKLove highest, business name next,
+      // tagline lowest, each only ~8px of edge-to-edge gap from the one
+      // before it rather than spread across a band.
+      var CASCADE_GAP = 8;
+      var CASCADE_ANGLE = 0.8; // ~46deg below horizontal - a shallower
+                                // diagonal than a near-vertical drop, still
+                                // enough rightward drift to keep the
+                                // reading order left-to-right.
+      var cascadeX = fieldW * 0.16;
+      var cascadeY = 8; // higher than the general field marginTop - safe
+                         // since the cascade's resting spots are never
+                         // clamped against marginTop the way dragging is.
+      var prevCX = null, prevCY = null, prevR = null;
+      contentBubbles.forEach(function(el, idx) {
+        var r = el.getBoundingClientRect().width / 2;
+        var cx, cy;
+        if (idx === 0) {
+          cx = cascadeX;
+          cy = cascadeY + r;
+        } else {
+          var dist = prevR + r + CASCADE_GAP;
+          cx = prevCX + Math.cos(CASCADE_ANGLE) * dist;
+          cy = prevCY + Math.sin(CASCADE_ANGLE) * dist;
+        }
+        // Clamp both edges now - the corner placement puts the first
+        // bubble close enough to the left edge that it needs the same
+        // guard the right edge already had.
+        cx = Math.max(marginSide + r, Math.min(cx, fieldW - marginSide - r));
+        placed.push({ x: cx, y: cy, r: r });
+        emergeQueue.push({ el: el, r: r, target: { x: cx, y: cy } });
+        prevCX = cx; prevCY = cy; prevR = r;
+      });
+      scatterBubbles.forEach(function(el) {
+        var r = (parseFloat(el.style.width) || el.getBoundingClientRect().width) / 2;
+        // Nav bubbles (the 4 with data-panel) get confined to the right
+        // side of the field - decorative bubbles keep the full-width
+        // range, and this also keeps nav clear of the content cascade
+        // now over in the upper-left corner.
+        var isNav = el.hasAttribute('data-panel');
+        var xMin = isNav ? fieldW * 0.58 : marginSide;
+        emergeQueue.push({ el: el, r: r, target: placeIn(topBandBottom, fieldH - marginBottom, xMin, fieldW - marginSide, r) });
+      });
+      // Shuffle so content/nav/decorative interleave rather than
+      // emerging in three visible batches.
+      for (var si = emergeQueue.length - 1; si > 0; si--) {
+        var sj = Math.floor(Math.random() * (si + 1));
+        var tmp = emergeQueue[si]; emergeQueue[si] = emergeQueue[sj]; emergeQueue[sj] = tmp;
+      }
+      var cursor = 0;
+      emergeQueue.forEach(function(item) {
+        cursor += 70 + Math.random() * 150;
+        setTimeout(function() {
+          addBody(item.el, item.r, item.target);
+        }, cursor);
       });
 
-      decoEls.forEach(function(el) {
-        var d = parseFloat(el.style.width);
-        var r = d / 2;
-        var x = marginSide + r + Math.random() * Math.max(10, fieldW - marginSide * 2 - d);
-        var y = marginTop + r + Math.random() * Math.max(10, fieldH - marginTop - marginBottom - d);
-        el.style.position = 'absolute';
-        el.style.top = '0';
-        el.style.left = '0';
-        bodies.push(makeBody(el, x, y, r));
+      // Subtle 3D tilt: each bubble rotates a few degrees toward/away
+      // from the cursor based on how the cursor sits relative to that
+      // bubble's own center, like a glossy tile catching the light -
+      // the classic "tilt card" trick (perspective() + rotateX/rotateY
+      // in the same transform list), just kept small (MAX_TILT) so it
+      // reads as depth rather than a flip. No 3D library needed for an
+      // effect this subtle - full Three.js/WebGL would be overkill here.
+      var mouseX = null, mouseY = null;
+      document.addEventListener('mousemove', function(e) {
+        var r = stage.getBoundingClientRect();
+        mouseX = e.clientX - r.left;
+        mouseY = e.clientY - r.top;
       });
+      var MAX_TILT = 6.75; // was 9 - down 25%, per feedback that felt too strong
+      // Only bubbles within this many radii of the cursor tilt at all -
+      // previously every bubble tilted regardless of cursor position,
+      // because the old dx/dy clamp maxed out at +-1 well before the
+      // cursor was actually close and just stayed pinned there for any
+      // further distance, instead of decaying back to 0.
+      var TILT_RANGE_R = 2.5;
+      function tiltFor(el, bx, by, r) {
+        if (mouseX === null) return '';
+        var dist = Math.hypot(mouseX - bx, mouseY - by);
+        var influence = r * TILT_RANGE_R;
+        if (dist > influence) {
+          el.style.setProperty('--glare-x', '0');
+          el.style.setProperty('--glare-y', '0');
+          return '';
+        }
+        // 1 right at the bubble's center, fading to 0 at the edge of its
+        // influence radius - so bubbles the cursor is merely passing near
+        // ease out instead of snapping off.
+        var falloff = 1 - dist / influence;
+        var dx = Math.max(-1, Math.min(1, (mouseX - bx) / r)) * falloff;
+        var dy = Math.max(-1, Math.min(1, (mouseY - by) / r)) * falloff;
+        // The glare (--glare-x/--glare-y, read by .bubble::before) moves
+        // with the same cursor offset, so the highlight slides across the
+        // surface in step with the tilt instead of staying pinned.
+        el.style.setProperty('--glare-x', (dx * 19.5).toFixed(1));
+        el.style.setProperty('--glare-y', (dy * 19.5).toFixed(1));
+        return ' perspective(900px) rotateX(' + (-dy * MAX_TILT).toFixed(2) + 'deg) rotateY(' + (dx * MAX_TILT).toFixed(2) + 'deg)';
+      }
 
       function render(b) {
-        b.el.style.transform = 'translate(' + (b.x - b.r).toFixed(1) + 'px, ' + (b.y - b.r).toFixed(1) + 'px)';
+        b.el.style.transform = 'translate(' + (b.x - b.r).toFixed(1) + 'px, ' + (b.y - b.r).toFixed(1) + 'px)' + tiltFor(b.el, b.x, b.y, b.r);
       }
-      bodies.forEach(render);
+
+      function pointerToField(e) {
+        var r = stage.getBoundingClientRect();
+        return { x: e.clientX - r.left, y: e.clientY - r.top };
+      }
+
+      function wireDrag(b) {
+        var el = b.el;
+
+        function onPointerDown(e) {
+          if (e.pointerType === 'mouse' && e.button !== 0) return;
+          try { el.setPointerCapture(e.pointerId); } catch (err) { /* non-active pointer */ }
+          b.pointerId = e.pointerId;
+          b.state = 'drag';
+          b.vx = 0; b.vy = 0;
+          el.classList.add('dragging');
+          b.pressT = performance.now();
+          b.pressX = e.clientX;
+          b.pressY = e.clientY;
+          var p = pointerToField(e);
+          b.grabDX = b.x - p.x;
+          b.grabDY = b.y - p.y;
+          b.samples = [{ x: e.clientX, y: e.clientY, t: b.pressT }];
+        }
+
+        function onPointerMove(e) {
+          if (b.state !== 'drag' || e.pointerId !== b.pointerId) return;
+          var now = performance.now();
+          var p = pointerToField(e);
+          var nx = Math.min(Math.max(p.x + b.grabDX, marginSide + b.r), fieldW - marginSide - b.r);
+          var ny = Math.min(Math.max(p.y + b.grabDY, marginTop + b.r), fieldH - marginBottom - b.r);
+          b.vx = nx - b.x; b.vy = ny - b.y;
+          b.x = nx; b.y = ny;
+          render(b);
+          b.samples.push({ x: e.clientX, y: e.clientY, t: now });
+          while (b.samples.length > 2 && now - b.samples[0].t > 120) b.samples.shift();
+        }
+
+        function release(e) {
+          if (b.state !== 'drag' || e.pointerId !== b.pointerId) return;
+          var now = performance.now();
+          el.classList.remove('dragging');
+          b.pointerId = null;
+          var dt = now - b.pressT;
+          var dist = Math.hypot(e.clientX - b.pressX, e.clientY - b.pressY);
+
+          if (dt <= CLICK_MS && dist <= CLICK_PX) {
+            b.state = 'excited'; b.vx = 0; b.vy = 0;
+            return;
+          }
+
+          b.suppressClick = true;
+          var recent = b.samples.filter(function(s) { return now - s.t <= 100; });
+          var first = recent[0] || b.samples[0];
+          var last = b.samples[b.samples.length - 1];
+          var span = Math.max(last.t - first.t, 16);
+          var vx = (last.x - first.x) / span * (1000 / 60);
+          var vy = (last.y - first.y) / span * (1000 / 60);
+          var mag = Math.hypot(vx, vy);
+          if (mag > MAX_LAUNCH) { vx = vx / mag * MAX_LAUNCH; vy = vy / mag * MAX_LAUNCH; }
+          b.vx = vx; b.vy = vy;
+          b.state = 'excited';
+        }
+
+        function onClick(e) {
+          if (b.suppressClick) { e.preventDefault(); e.stopPropagation(); b.suppressClick = false; }
+        }
+
+        el.addEventListener('pointerdown', onPointerDown);
+        el.addEventListener('pointermove', onPointerMove);
+        el.addEventListener('pointerup', release);
+        el.addEventListener('pointercancel', release);
+        el.addEventListener('click', onClick, true);
+      }
+      bodies.forEach(wireDrag);
 
       function step(now) {
         var t = now / 1000;
@@ -1315,32 +1800,64 @@ body{
           }
         }
 
+        // Scripted rise: ease from the pot's mouth to the pre-planned
+        // resting spot, with a wobble that damps out on arrival, then
+        // hand off to ordinary idle drift. No collision math here - the
+        // whole point is a calm emergence, not a bounce off neighbors.
+        for (var ri = 0; ri < bodies.length; ri++) {
+          var rb = bodies[ri];
+          if (rb.state !== 'rising') continue;
+          if (rb.riseStart === null) rb.riseStart = now;
+          var rt = Math.min((now - rb.riseStart) / rb.riseDuration, 1);
+          var ease = 1 - Math.pow(1 - rt, 3);
+          var wobble = Math.sin(rt * Math.PI * rb.wobbleFreq * 2) * rb.wobbleAmp * (1 - rt);
+          rb.x = rb.startX + (rb.targetX - rb.startX) * ease + wobble;
+          rb.y = rb.startY + (rb.targetY - rb.startY) * ease;
+          var scale = (0.35 + 0.65 * ease).toFixed(3);
+          rb.el.style.transform = 'translate(' + (rb.x - rb.r).toFixed(1) + 'px, ' + (rb.y - rb.r).toFixed(1) + 'px) scale(' + scale + ')' + tiltFor(rb.el, rb.x, rb.y, rb.r);
+          if (rt >= 1) {
+            rb.state = 'idle';
+            rb.x = rb.targetX; rb.y = rb.targetY;
+            rb.vx = 0; rb.vy = 0;
+            rb.home = { x: rb.targetX, y: rb.targetY };
+            rb.phaseX = -t * rb.freqX * Math.PI * 2;
+            rb.phaseY = -t * rb.freqY * Math.PI * 2;
+          }
+        }
+
         for (var i = 0; i < bodies.length; i++) {
           for (var j = i + 1; j < bodies.length; j++) {
             var a = bodies[i], b = bodies[j];
+            if (a.state === 'rising' || b.state === 'rising') continue;
             var dx = b.x - a.x, dy = b.y - a.y;
             var dist = Math.sqrt(dx * dx + dy * dy) || 1;
             var minDist = a.r + b.r;
             if (dist < minDist) {
               var nx = dx / dist, ny = dy / dist;
+              var invA = a.state === 'drag' ? 0 : 1;
+              var invB = b.state === 'drag' ? 0 : 1;
+              var invSum = invA + invB;
+              if (invSum === 0) continue;
               var overlap = minDist - dist;
-              a.x -= nx * overlap * 0.5; a.y -= ny * overlap * 0.5;
-              b.x += nx * overlap * 0.5; b.y += ny * overlap * 0.5;
+              a.x -= nx * overlap * (invA / invSum); a.y -= ny * overlap * (invA / invSum);
+              b.x += nx * overlap * (invB / invSum); b.y += ny * overlap * (invB / invSum);
               var relVx = b.vx - a.vx, relVy = b.vy - a.vy;
               var relSpeed = relVx * nx + relVy * ny;
               if (relSpeed < 0) {
-                var impulse = -(1 + RESTITUTION) * relSpeed / 2;
-                a.vx -= impulse * nx; a.vy -= impulse * ny;
-                b.vx += impulse * nx; b.vy += impulse * ny;
+                var impulse = -(1 + RESTITUTION) * relSpeed / invSum;
+                a.vx -= impulse * invA * nx; a.vy -= impulse * invA * ny;
+                b.vx += impulse * invB * nx; b.vy += impulse * invB * ny;
               }
-              a.state = 'excited';
-              b.state = 'excited';
+              if (a.state !== 'drag') a.state = 'excited';
+              if (b.state !== 'drag') b.state = 'excited';
             }
           }
         }
 
         for (var m = 0; m < bodies.length; m++) {
           var bb = bodies[m];
+          if (bb.state === 'drag') { render(bb); continue; }
+          if (bb.state === 'rising') continue; // already rendered above, with scale
           if (bb.state !== 'excited') { render(bb); continue; }
 
           bb.vx *= DAMPING; bb.vy *= DAMPING;
@@ -1367,6 +1884,64 @@ body{
         requestAnimationFrame(step);
       }
       requestAnimationFrame(step);
+    };
+  })();
+</script>
+
+<script>
+  // Persistent ambience: once resolved, small translucent bubbles keep
+  // rising and popping at random, sparse intervals for as long as the
+  // visitor stays on the page - independent of the physics field above,
+  // purely decorative, never interactive.
+  (function() {
+    var started = false;
+
+    window.startAmbientPopsOnce = function() {
+      if (started) return;
+      if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+      started = true;
+
+      var stage = document.getElementById('stage');
+
+      function spawnOne() {
+        // Mostly small, sometimes medium, occasionally as big as a nav
+        // bubble - a flat range made everything read the same size.
+        var sizeRoll = Math.random();
+        var d = sizeRoll < 0.62 ? (10 + Math.random() * 32)
+              : sizeRoll < 0.88 ? (45 + Math.random() * 60)
+              : (110 + Math.random() * 65);
+        var el = document.createElement('div');
+        el.className = 'ambient-pop';
+        if (Math.random() < 0.15) el.classList.add('ambient-pop-rainbow');
+        el.setAttribute('aria-hidden', 'true');
+        el.style.width = d + 'px';
+        el.style.height = d + 'px';
+        el.style.left = (20 + Math.random() * Math.max(10, window.innerWidth - 40 - d)) + 'px';
+        el.style.top = (window.innerHeight * 0.35 + Math.random() * Math.max(10, window.innerHeight * 0.55 - d)) + 'px';
+        stage.appendChild(el);
+
+        requestAnimationFrame(function() {
+          requestAnimationFrame(function() { el.classList.add('rise'); });
+        });
+
+        setTimeout(function() {
+          el.classList.remove('rise');
+          el.classList.add('pop');
+          setTimeout(function() { el.remove(); }, 1700);
+        }, 1300 + Math.random() * 600);
+      }
+
+      // ~50% more frequent than the original pass (was ~3.4s average
+      // between spawns; this averages ~2.25s), and since a new one is
+      // scheduled independently of any previous one's own lifetime,
+      // it's common - not rare - to have two or more alive at once.
+      function scheduleNext() {
+        setTimeout(function() {
+          if (!document.hidden) spawnOne();
+          scheduleNext();
+        }, 1000 + Math.random() * 2500);
+      }
+      scheduleNext();
     };
   })();
 </script>
