@@ -86,7 +86,7 @@ body{
   transition: opacity 1.3s ease;
 }
 /* Tied to .pot-settled (added in the same breath as .kitchen-visible),
-   not .resolved (which doesn't land until ~6s later once every DOM
+   not .resolved (which doesn't land until ~3s later once every DOM
    bubble has emerged) - see beginPercolateReveal/resolveStage. */
 #stage.pot-settled #boil-canvas{ opacity:0.32; pointer-events:none; }
 
@@ -110,10 +110,12 @@ body{
   background: rgba(247,243,233,0.26);
 }
 .bubble.bubble-brand{
-  width: clamp(190px, 18vw, 215px);
-  height: clamp(190px, 18vw, 215px);
+  /* 30% bigger across the board (bubble + text together) - was
+     clamp(190px,18vw,215px) / clamp(22px,3vw,30px). */
+  width: clamp(247px, 23.4vw, 280px);
+  height: clamp(247px, 23.4vw, 280px);
   font-family:'Archivo Black', 'Space Mono', monospace;
-  font-size: clamp(22px, 3vw, 30px);
+  font-size: clamp(29px, 3.9vw, 39px);
   font-weight: 400;
   letter-spacing: -0.5px;
   color: var(--ember);
@@ -127,10 +129,14 @@ body{
   height: clamp(195px, 19vw, 220px);
   font-family:'Space Mono', monospace;
   font-weight: 700;
-  font-size: clamp(11px, 1.5vw, 14px);
+  /* Was clamp(11px,1.5vw,14px) - text barely used a third of the
+     circle. Bigger text plus tighter padding (overriding the shared
+     .bubble-content 24px) actually fills the space. */
+  font-size: clamp(15px, 2.4vw, 20px);
   letter-spacing: 1px;
   text-transform: uppercase;
   color: var(--char);
+  padding: 14px;
   top: 21%; left: 50%;
 }
 .bubble.bubble-tagline{
@@ -151,8 +157,12 @@ body{
     -1px -1px 0 rgba(247,243,233,0.98), 1px -1px 0 rgba(247,243,233,0.98),
     -1px 1px 0 rgba(247,243,233,0.98), 1px 1px 0 rgba(247,243,233,0.98),
     0 1px 3px rgba(31,27,22,0.4);
-  font-size: clamp(12px, 1.5vw, 14.5px);
-  line-height: 1.4;
+  /* Was clamp(12px,1.5vw,14.5px) - bumped up alongside tighter padding
+     (overriding the shared .bubble-content 24px) so the sentence
+     actually fills the circle instead of floating in the middle third. */
+  font-size: clamp(15px, 2.1vw, 19px);
+  line-height: 1.35;
+  padding: 14px;
   top: 19%; left: 80%;
 }
 
@@ -189,7 +199,11 @@ body{
   border: 1.5px solid rgba(184,69,46,0.55);
   color: var(--char);
   font-family:'Space Mono', monospace;
-  font-size: 13px;
+  /* 50% bigger - was 13px. This is the base rule the 4 nav buttons
+     (THE MENU/THE CHEF/THE PASS/FRONT OF HOUSE) use directly; the
+     bubble-content variants (brand/bizname/tagline) override font-size
+     themselves so they're unaffected. */
+  font-size: 19.5px;
   font-weight:700;
   letter-spacing: 1px;
   text-transform: uppercase;
@@ -237,6 +251,12 @@ body{
 .bubble{ cursor: grab; }
 .bubble[data-panel]{ cursor: pointer; }
 .bubble.bubble-rainbow-link{
+  /* Shared visuals for both the desktop version (JS-created, randomized
+     size/position among the deco tier - width/height set inline there,
+     overriding this) and the mobile-only static fallback below (which
+     has no inline size, so this 60px default is what it actually uses). */
+  width: 60px;
+  height: 60px;
   background: conic-gradient(from 0deg, #ff6b6b, #ffd166, #8ee06c, #5ec8e6, #7d8bf7, #d68af0, #ff6b6b);
   border: 1.5px solid rgba(255,255,255,0.6);
   -webkit-backdrop-filter: none;
@@ -244,6 +264,10 @@ body{
   box-shadow: 0 10px 24px rgba(0,0,0,0.25), inset 0 1px 1px rgba(255,255,255,0.6), 0 0 20px rgba(216,138,240,0.35);
   cursor: pointer;
 }
+/* Hidden by default (this element only exists for mobile, where the
+   desktop physics JS that spawns the real randomized deco bubbles never
+   runs) - re-shown inside the mobile breakpoint below. */
+#rainbow-link-mobile{ display:none; }
 /* Must come after .bubble-rainbow-link so an active drag's grabbing
    cursor still wins over the link's pointer cursor (equal specificity,
    later rule wins). */
@@ -317,11 +341,16 @@ body{
   body{ overflow-y:auto; overflow-x:hidden; }
   #bubble-nav{
     position:absolute;
-    inset: 35% 8% 12%;
+    /* Top was 35% - a leftover reserve sized for the old bottom-anchored
+       Boil Again button, which now lives fixed near top:12px instead and
+       doesn't need nearly that much clearance. Freeing that space (plus
+       a smaller gap below) is what gets the whole grid to fit in one
+       screen instead of needing a scroll to see everything. */
+    inset: 11% 8% 6%;
     display:grid;
     grid-template-columns: 1fr 1fr;
     grid-auto-rows: min-content;
-    gap: 16px;
+    gap: 10px;
     place-items:center;
   }
   .bubble{ position:static; transform: scale(0.3); }
@@ -331,15 +360,19 @@ body{
   /* The desktop clamp() minimums (180-270px) are sized for vw scaling
      that only kicks in above ~900px - below that they clamp to their
      floor, which is far too large for a narrow phone screen. */
-  .bubble.bubble-brand{ width:140px; height:140px; font-size:18px; }
-  .bubble.bubble-bizname{ width:150px; height:150px; font-size:10px; }
-  .bubble.bubble-tagline{ width:150px; height:150px; font-size:10.5px; }
-  /* The grid can overflow past #stage's own 100vh box (that's fine -
-     the page scrolls to reach it), so a bottom-anchored button ends up
-     colliding with whichever bubble the scroll happens to land on.
-     The reserved empty space above the grid (top 35% inset) is the
-     one spot guaranteed clear regardless of scroll position. */
+  .bubble.bubble-brand{
+    width:182px; height:182px; font-size:23px;
+    /* Spans both grid columns - since it's first in DOM order, this
+       puts it alone on its own row at the top, centered (place-items:
+       center centers it within that full-width area), with every other
+       bubble flowing into the 2-column grid below it instead of being
+       just another cell in the pair-grid. */
+    grid-column: 1 / -1;
+  }
+  .bubble.bubble-bizname{ width:150px; height:150px; font-size:13px; padding:10px; }
+  .bubble.bubble-tagline{ width:150px; height:150px; font-size:13.5px; padding:10px; }
   #boil-again{ position:fixed; top:12px; bottom:auto; z-index:5; }
+  #rainbow-link-mobile{ display:block; }
 }
 
 .panel{
@@ -646,6 +679,14 @@ body{
     <button class="bubble" data-panel="chef">The Chef</button>
     <button class="bubble" data-panel="pass">The Pass</button>
     <button class="bubble" data-panel="foh">Front of House</button>
+    <!-- Mobile-only fallback: decorative bubbles (including the randomized
+         rainbow link below) only ever spawn via the desktop physics JS,
+         which bails out entirely under 700px width - without this, mobile
+         never gets a rainbow link at all. Hidden by default, shown only
+         inside the mobile media query, and explicitly excluded from the
+         desktop scatterBubbles query so it can't double up with the real
+         randomized one down there. -->
+    <a id="rainbow-link-mobile" class="bubble bubble-deco bubble-rainbow-link" href="https://naked.chefmyklove.com" target="_blank" rel="noopener noreferrer" aria-label="Visit naked.chefmyklove.com"></a>
   </nav>
 
   <button id="boil-again" type="button">Boil Again &#8635;</button>
@@ -989,25 +1030,25 @@ body{
     skipRequested = true;
   }
 
-  // Six seconds, splash (kitchen photo starting to fade in) to fully
-  // resolved: 3s of pure ambient percolation (photo finishes fading in,
-  // pot just bubbles) before any content/nav/decorative bubble starts
-  // rising, then 3s for all of them to emerge, rise, and settle before
-  // the pot itself fades away.
-  var AMBIENT_ONLY_MS = 3000;
+  // Three seconds, splash (kitchen photo starting to fade in) to fully
+  // resolved: the content/nav/decorative bubbles start rising in the same
+  // breath as the photo fading in and the pot fading to translucent -
+  // previously they waited BUBBLES_EMERGE_MS (3s) *after* that crossfade
+  // had already finished, which read as two disconnected events (fade,
+  // then a pause, then bubbles) instead of one continuous reveal.
   var BUBBLES_EMERGE_MS = 3000;
 
   function beginPercolateReveal() {
     stageEl.classList.add('kitchen-visible');
-    // Added in the same breath as kitchen-visible, not at the end of
-    // resolveStage 6s later - the pot's fade-to-translucent and the
-    // photo's fade-in now run as one simultaneous crossfade (same
-    // duration in CSS) instead of two visibly separate events.
+    // Pot's fade-to-translucent and the photo's fade-in run as one
+    // simultaneous crossfade (same duration in CSS).
     stageEl.classList.add('pot-settled');
-    setTimeout(function() {
-      if (window.initBubblePhysicsOnce) window.initBubblePhysicsOnce();
-    }, AMBIENT_ONLY_MS);
-    setTimeout(resolveStage, AMBIENT_ONLY_MS + BUBBLES_EMERGE_MS);
+    // Fires immediately, right alongside the crossfade above, instead of
+    // being deferred - initBubblePhysicsOnce is already defined by this
+    // point (this only ever runs a few seconds into page life, well after
+    // every script tag has parsed), so no setTimeout(...,0) guard needed.
+    if (window.initBubblePhysicsOnce) window.initBubblePhysicsOnce();
+    setTimeout(resolveStage, BUBBLES_EMERGE_MS);
   }
 
   function runBoilSequence() {
@@ -1103,7 +1144,7 @@ body{
 </script>
 
 <div class="panel" id="panel-menu" role="dialog" aria-labelledby="panel-menu-title" hidden>
-  <button class="panel-close" type="button" aria-label="Close">&times;</button>
+  <button class="panel-close" type="button" aria-label="Back to home">&larr;</button>
   <div class="panel-inner">
     <div class="eyebrow">Today's Menu <span class="note">— build price includes first year of Web Care</span></div>
     <h2 id="panel-menu-title" style="font-family:'Space Mono',monospace; margin-bottom:16px;">The Menu</h2>
@@ -1195,34 +1236,71 @@ body{
 </div>
 
 <div class="panel" id="panel-chef" role="dialog" aria-labelledby="panel-chef-title" hidden>
-  <button class="panel-close" type="button" aria-label="Close">&times;</button>
+  <button class="panel-close" type="button" aria-label="Back to home">&larr;</button>
   <div class="panel-inner">
     <div class="eyebrow">The Chef</div>
-    <h2 id="panel-chef-title" style="font-family:'Space Mono',monospace; margin-bottom:16px;">Confidential</h2>
+    <h2 id="panel-chef-title" style="font-family:'Space Mono',monospace; margin-bottom:16px;">Coding Confidential</h2>
     <p style="margin-bottom:14px; line-height:1.7;">
-      I worked kitchens for <strong>thirty years</strong>, mostly
-      <strong>managing them</strong> at
-      <strong>[KIND OF PLACES — e.g. a couple of mid-size scratch kitchens and one place that
-      should've closed a year before it did]</strong>. I left because
-      <strong>[YOUR REAL REASON]</strong>, and landed in software around
-      <strong>[YEAR / HOW IT HAPPENED]</strong>.
+      Thirty years in professional kitchens will teach you things no bootcamp curriculum bothers
+      to mention. Like how a burn on the forearm barely registers by hour six. Like how you can
+      read a cook's entire day off how they're gripping a chef's knife at 4pm — steady hands mean
+      the ticket times are holding, shaky ones mean somebody's about to plate something they
+      shouldn't. You learn that "the ticket's not done till the plate's right" isn't a mantra
+      taped above an expo station for morale. It's the only law that ever mattered, because the
+      alternative is serving someone something you weren't proud of.
     </p>
     <p style="margin-bottom:14px; line-height:1.7;">
-      Here's the thing nobody warns you about: the two jobs run on the same discipline. Mise en
-      place is just sprint planning with knives. "The ticket's not done till the plate's right"
-      is the same standard as "the feature's not done till it works in prod." And the reason my
-      builds all ship with a year of Web Care isn't a sales tactic — it's the same instinct that
-      keeps a line cook from walking out mid-service. You don't hand someone a plate and
-      disappear. You don't hand someone a website and disappear either.
+      I didn't walk away from that life. It walked away from me — a career-ending injury, the
+      kind that doesn't ask permission, the kind that ends a three-decade run with zero ceremony.
+      One day you're running a line. The next you're staring at a body that's decided it's done
+      collecting on thirty years of favors, figuring out what comes next with no script for it.
+    </p>
+    <p style="margin-bottom:14px; line-height:1.7;">
+      Here's what I didn't expect: I wasn't starting over. I was just switching mediums. Cooking
+      was never the whole picture — it was one instrument in a much bigger practice. I've been
+      making things with my hands my whole life: soap, sound, fibre, paint, poems. Cooking just
+      happened to be the one that paid rent for thirty years. So when the kitchen closed, I didn't
+      lose my identity. I lost one canvas and picked up another.
+    </p>
+    <p style="margin-bottom:14px; line-height:1.7;">
+      That canvas turned out to be code. A bootcamp full of twenty-somethings and one very
+      confused former chef, learning to debug JavaScript with the same part of my brain that used
+      to rescue a broken hollandaise mid-service. Nobody in either industry tells you it's the
+      same job: recipe development and debugging are both transformation under pressure — raw
+      material, forced through enough iterations, until it becomes something that actually works
+      for somebody. Mise en place is sprint planning with fewer knives and worse burns. Systems
+      thinking, holding the whole operation in your head at once, reading a room before it boils
+      over — that's not a skill I picked up in a course. That's fifteen years of expo talking
+      through my commits now.
+    </p>
+    <p style="margin-bottom:14px; line-height:1.7;">
+      I also do something most developers won't touch: I go into other people's builds and fix
+      what's broken, finish what got abandoned half-cooked. Every kitchen I ever ran, I inherited
+      somebody else's mess at some point — a walk-in nobody organized, a menu nobody costed out
+      properly — and you don't get to complain about it, you just fix it and keep service moving.
+      Same instinct applies to a codebase somebody left in a bad state. I'm not precious about
+      whose name is on the original commit. I care whether the thing works and whether it lasts.
+    </p>
+    <p style="margin-bottom:14px; line-height:1.7;">
+      Which is the part that never changes, no matter the medium: a line cook does not plate a
+      dish and vanish. You watch it go out. You watch it come back. You fix what's wrong before
+      the table has to say a word. So when I ship a build — mine or someone else's I've taken
+      over — it comes with real support after launch. Not a sales tactic. The same discipline that
+      never let me walk away from a plate mid-service, and never will let me walk away from code.
     </p>
     <p style="line-height:1.7;">
-      <strong>[OPTIONAL: ONE MORE SPECIFIC KITCHEN DETAIL/STORY THAT MAKES THIS REAL]</strong>
+      I'm not interested in software that just works, same as I was never interested in food that
+      was just edible. Kitchens taught me that most systems, culinary or digital, are built to
+      exclude somebody. I spent thirty years trying to make sure the people on my line got fed and
+      got paid fairly. I'm spending this decade doing the same thing with code — and with soap,
+      sound, and paint on the side, because apparently one art form was never going to be enough
+      to hold everything I've got to say.
     </p>
   </div>
 </div>
 
 <div class="panel" id="panel-pass" role="dialog" aria-labelledby="panel-pass-title" hidden>
-  <button class="panel-close" type="button" aria-label="Close">&times;</button>
+  <button class="panel-close" type="button" aria-label="Back to home">&larr;</button>
   <div class="panel-inner">
     <div class="eyebrow">The Pass — Recent Work</div>
     <h2 id="panel-pass-title" style="font-family:'Space Mono',monospace; margin-bottom:16px;">Tickets Fired</h2>
@@ -1233,10 +1311,9 @@ body{
         <span class="tag">Artist website</span>
       </div>
       <div class="note">
-        Stack: <strong>[e.g. static HTML/CSS, or React — fill in]</strong>. Constraint:
-        <strong>[REAL CONSTRAINT — budget, timeline, client's existing brand assets, etc.]</strong>.
-        One decision worth telling: <strong>[e.g. why you structured the gallery / nav / hosting
-        the way you did]</strong>.
+        Flat HTML, one hand-written stylesheet, a small script for the background animation —
+        zero dependencies, zero build step. Hosted on GitHub Pages under her own domain. An
+        artist site doesn't need a framework behind it, it needs to load fast and never break.
       </div>
     </div>
 
@@ -1246,8 +1323,9 @@ body{
         <span class="tag">Artist website</span>
       </div>
       <div class="note">
-        Stack: <strong>[FILL IN]</strong>. Constraint: <strong>[FILL IN]</strong>. Decision:
-        <strong>[FILL IN]</strong>.
+        Plain HTML, no framework, no build step, hosted on GitHub Pages under her own domain.
+        Photo shoots, live performance clips, and a press kit sit right in the repo and get
+        served exactly as they are — nothing to compile, nothing to break.
       </div>
     </div>
 
@@ -1257,8 +1335,10 @@ body{
         <span class="tag">Studio site</span>
       </div>
       <div class="note">
-        Stack: <strong>[FILL IN]</strong>. Constraint: <strong>[FILL IN]</strong>. Decision:
-        <strong>[FILL IN]</strong>.
+        The bigger build of the three — same zero-framework philosophy, more surface area:
+        vanilla HTML/CSS/JS with dedicated modules driving bubble physics and animated
+        backgrounds, plus a small backend and a blog. GitHub Pages, custom domain, same house
+        rules as everywhere else here.
       </div>
     </div>
 
@@ -1274,7 +1354,7 @@ body{
 </div>
 
 <div class="panel" id="panel-foh" role="dialog" aria-labelledby="panel-foh-title" hidden>
-  <button class="panel-close" type="button" aria-label="Close">&times;</button>
+  <button class="panel-close" type="button" aria-label="Back to home">&larr;</button>
   <div class="panel-inner">
     <div class="eyebrow">Front of House — Start an Order</div>
     <h2 id="panel-foh-title" style="font-family:'Space Mono',monospace; margin-bottom:16px;">Tell Me About Your Project</h2>
@@ -1468,7 +1548,11 @@ body{
 
       var stage = document.getElementById('stage');
       var nav = document.getElementById('bubble-nav');
-      var scatterBubbles = Array.prototype.slice.call(document.querySelectorAll('.bubble:not(.bubble-content)'));
+      // #rainbow-link-mobile is excluded here - it's a separate static
+      // fallback for mobile (where this whole physics module never runs)
+      // and would otherwise double up with the randomized one created
+      // below.
+      var scatterBubbles = Array.prototype.slice.call(document.querySelectorAll('.bubble:not(.bubble-content):not(#rainbow-link-mobile)'));
       var contentBubbles = Array.prototype.slice.call(document.querySelectorAll('.bubble-content'));
       var boilAgain = document.getElementById('boil-again');
 
@@ -1478,8 +1562,8 @@ body{
       // most stay small-to-medium.
       var DECO_DIAMETERS = [24, 36, 45, 55, 68, 80, 100, 115, 155];
       // Rainbow link lands on a different mid-to-small deco bubble every
-      // page load instead of always being the smallest one - excludes
-      // the two largest sizes (115, 155) so it's never one of the big ones.
+      // page load instead of always being the same one - excludes the
+      // two largest sizes (115, 155) so it's never one of the big ones.
       var rainbowLinkPoolSize = DECO_DIAMETERS.length - 2;
       var rainbowLinkIndex = Math.floor(Math.random() * rainbowLinkPoolSize);
       var decoEls = [];
