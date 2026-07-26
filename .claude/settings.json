@@ -71,7 +71,9 @@
       "Bash(git push *)",
       "Bash(cd \"d:/Desktop/software solutions\" && git show main:index.html | head -40 *)",
       "Read(//tmp/**)",
-      "Bash(git fetch *)"
+      "Bash(git fetch *)",
+      "Bash(git checkout *)",
+      "Bash(git stash *)"
     ],
     "additionalDirectories": [
       "d:\\Desktop\\software solutions",
