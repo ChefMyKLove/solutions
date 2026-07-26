@@ -337,6 +337,26 @@ body{
 #stage.resolved #boil-again{ opacity:0.8; }
 #boil-again:hover{ opacity:1; }
 
+#sound-toggle{
+  position:fixed;
+  top:12px;
+  right:12px;
+  z-index:6;
+  font-family:'Space Mono', monospace;
+  font-size: 12px;
+  letter-spacing: 1px;
+  background: rgba(20,17,13,0.55);
+  border: 1px solid rgba(247,243,233,0.4);
+  color: var(--paper);
+  padding: 8px 14px;
+  border-radius: 20px;
+  cursor:pointer;
+  opacity:0.75;
+  transition: opacity 0.3s ease, background 0.3s ease;
+}
+#sound-toggle:hover{ opacity:1; }
+#sound-toggle[aria-pressed="false"]{ background: rgba(20,17,13,0.4); color: rgba(247,243,233,0.55); }
+
 @media (max-width: 700px){
   body{ overflow-y:auto; overflow-x:hidden; }
   #bubble-nav{
@@ -690,6 +710,16 @@ body{
   </nav>
 
   <button id="boil-again" type="button">Boil Again &#8635;</button>
+
+  <!-- Ignition is one-shot; the gas hiss and bubbling are seamless loops
+       meant to play together as a low background layer. None of these
+       can actually autoplay with sound - browsers block that outright -
+       so playback is kicked off from the first genuine user interaction,
+       wired up in the script below. -->
+  <audio id="sfx-ignition" src="assets/sfx-ignition.mp3" preload="auto"></audio>
+  <audio id="sfx-gas" src="assets/sfx-gas-hiss.mp3" preload="auto" loop></audio>
+  <audio id="sfx-bubbling" src="assets/sfx-bubbling.mp3" preload="auto" loop></audio>
+  <button id="sound-toggle" type="button" aria-pressed="true">Sound On &#9834;</button>
 </div>
 
 <script>
@@ -1139,6 +1169,81 @@ body{
 
   document.getElementById('boil-again').addEventListener('click', replayBoilManually);
 
+  // Sound: ignition click, then gas hiss + bubbling looping together
+  // underneath. Browsers flatly refuse to autoplay audio with sound
+  // before the visitor has interacted with the page at all - no amount
+  // of JS trickery gets around that, it's a deliberate anti-annoyance
+  // policy in every major browser. So "start on load" becomes "start on
+  // the very first click/key/touch", which the existing skip-listener
+  // pattern already captures near-instantly for most visitors anyway.
+  (function() {
+    var sfxIgnition = document.getElementById('sfx-ignition');
+    var sfxGas = document.getElementById('sfx-gas');
+    var sfxBubbling = document.getElementById('sfx-bubbling');
+    var soundToggle = document.getElementById('sound-toggle');
+    var audioStarted = false;
+
+    var soundEnabled = true;
+    try {
+      var stored = localStorage.getItem('cmk-sound');
+      if (stored !== null) soundEnabled = stored === '1';
+    } catch (err) { /* localStorage unavailable (private mode etc.) - default stays on */ }
+
+    function updateToggleUI() {
+      soundToggle.textContent = soundEnabled ? 'Sound On ♪' : 'Sound Off';
+      soundToggle.setAttribute('aria-pressed', soundEnabled ? 'true' : 'false');
+    }
+    updateToggleUI();
+
+    function applyMuteState() {
+      [sfxIgnition, sfxGas, sfxBubbling].forEach(function(el) {
+        if (el) el.muted = !soundEnabled;
+      });
+    }
+
+    // Called from a real user-gesture handler (click/key/touch, or the
+    // Boil Again button) so .play() is allowed to actually start.
+    function startAudioSequence() {
+      audioStarted = true;
+      applyMuteState();
+      if (sfxIgnition) { sfxIgnition.currentTime = 0; sfxIgnition.play().catch(function() {}); }
+      if (sfxGas) { sfxGas.volume = 0.35; sfxGas.currentTime = 0; sfxGas.play().catch(function() {}); }
+      if (sfxBubbling) { sfxBubbling.volume = 0.5; sfxBubbling.currentTime = 0; sfxBubbling.play().catch(function() {}); }
+    }
+
+    function firstInteractionAudioStart() {
+      if (audioStarted) return;
+      startAudioSequence();
+      document.removeEventListener('click', firstInteractionAudioStart);
+      document.removeEventListener('keydown', firstInteractionAudioStart);
+      document.removeEventListener('touchstart', firstInteractionAudioStart);
+    }
+    document.addEventListener('click', firstInteractionAudioStart);
+    document.addEventListener('keydown', firstInteractionAudioStart);
+    document.addEventListener('touchstart', firstInteractionAudioStart);
+
+    soundToggle.addEventListener('click', function(e) {
+      // Stops this click from also bubbling into the boil-skip listener
+      // (which listens on document for any click) or from re-triggering
+      // firstInteractionAudioStart redundantly - this handler already
+      // covers starting playback itself.
+      e.stopPropagation();
+      soundEnabled = !soundEnabled;
+      try { localStorage.setItem('cmk-sound', soundEnabled ? '1' : '0'); } catch (err) { /* ignore */ }
+      updateToggleUI();
+      if (!audioStarted) startAudioSequence();
+      else applyMuteState();
+    });
+
+    // Boil Again is already a genuine click, so this can restart the
+    // full sequence directly without waiting on the first-interaction
+    // listener above.
+    document.getElementById('boil-again').addEventListener('click', function() {
+      if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+      startAudioSequence();
+    });
+  })();
+
   applyAmbientMotion();
   runBoilSequence();
 </script>
@@ -1241,29 +1346,36 @@ body{
     <div class="eyebrow">The Chef</div>
     <h2 id="panel-chef-title" style="font-family:'Space Mono',monospace; margin-bottom:16px;">Coding Confidential</h2>
     <p style="margin-bottom:14px; line-height:1.7;">
-      Thirty years in professional kitchens will teach you things no bootcamp curriculum bothers
-      to mention. Like how a burn on the forearm barely registers by hour six. Like how you can
-      read a cook's entire day off how they're gripping a chef's knife at 4pm — steady hands mean
-      the ticket times are holding, shaky ones mean somebody's about to plate something they
-      shouldn't. You learn that "the ticket's not done till the plate's right" isn't a mantra
-      taped above an expo station for morale. It's the only law that ever mattered, because the
-      alternative is serving someone something you weren't proud of.
+      Thirty years in professional kitchens teaches you things no bootcamp curriculum can even
+      mention: how a burn on the forearm barely registers by hour six; or the way you can read a
+      cook's entire day just by how they're gripping the knife at 4pm… steady hands mean the
+      ticket times are holding, shaky ones mean a customer's special night out is about to go
+      horribly wrong. You learn that "the ticket's not done till the plate's right" isn't a
+      mantra taped above an expo station for team morale. It's the only law that matters, because
+      the alternative is serving something that will haunt you the rest of service — or maybe the
+      rest of your career.
     </p>
     <p style="margin-bottom:14px; line-height:1.7;">
-      I didn't walk away from that life. It walked away from me — a career-ending injury, the
-      kind that doesn't ask permission, the kind that ends a three-decade run with zero ceremony.
-      One day you're running a line. The next you're staring at a body that's decided it's done
-      collecting on thirty years of favors, figuring out what comes next with no script for it.
+      I didn't walk away from that life, though there were times when I thought I couldn't take
+      it any longer. No, it walked away from me through an injury that the hero I thought I was
+      could just power through. Making it a career-ending injury, ending a three-decade run with
+      zero ceremony. One day you're running the line of a Michelin quality kitchen. The next
+      you're struggling to keep up when you should have just taken a week off, and your hand is
+      slowly becoming crippled as you keep trying to show up like you know you should be able to…
     </p>
     <p style="margin-bottom:14px; line-height:1.7;">
-      Here's what I didn't expect: I wasn't starting over. I was just switching mediums. Cooking
-      was never the whole picture — it was one instrument in a much bigger practice. I've been
-      making things with my hands my whole life: soap, sound, fibre, paint, poems. Cooking just
-      happened to be the one that paid rent for thirty years. So when the kitchen closed, I didn't
-      lose my identity. I lost one canvas and picked up another.
+      But can't any longer.
     </p>
     <p style="margin-bottom:14px; line-height:1.7;">
-      That canvas turned out to be code. A bootcamp full of twenty-somethings and one very
+      Here's what I didn't expect through the two-plus years since that day: it's that I wasn't
+      actually starting over. I was just switching mediums. Cooking was never the whole picture,
+      it was one instrument in a much bigger practice. I've been making things with my hands my
+      whole life: soap, sound, fibre, paint, poems, stories… confection… Cooking just happened to
+      be the one that paid rent for thirty years. So when the kitchen closed, I didn't lose my
+      identity. I lost access to one canvas and picked up another.
+    </p>
+    <p style="margin-bottom:14px; line-height:1.7;">
+      That new canvas turned out to be code. A bootcamp full of twenty-somethings and one very
       confused former chef, learning to debug JavaScript with the same part of my brain that used
       to rescue a broken hollandaise mid-service. Nobody in either industry tells you it's the
       same job: recipe development and debugging are both transformation under pressure — raw
@@ -1276,25 +1388,35 @@ body{
     <p style="margin-bottom:14px; line-height:1.7;">
       I also do something most developers won't touch: I go into other people's builds and fix
       what's broken, finish what got abandoned half-cooked. Every kitchen I ever ran, I inherited
-      somebody else's mess at some point — a walk-in nobody organized, a menu nobody costed out
-      properly — and you don't get to complain about it, you just fix it and keep service moving.
-      Same instinct applies to a codebase somebody left in a bad state. I'm not precious about
-      whose name is on the original commit. I care whether the thing works and whether it lasts.
+      somebody else's mess at some point: a walk-in nobody organized, or a menu that wasn't costed
+      out properly. Your job isn't to complain about it though. You're there to fix it and keep
+      service moving. Same instinct applies to a codebase somebody left in a bad state. I'm not
+      precious about whose name is on the original commit. I care whether the thing works and
+      whether it lasts.
     </p>
     <p style="margin-bottom:14px; line-height:1.7;">
       Which is the part that never changes, no matter the medium: a line cook does not plate a
       dish and vanish. You watch it go out. You watch it come back. You fix what's wrong before
-      the table has to say a word. So when I ship a build — mine or someone else's I've taken
-      over — it comes with real support after launch. Not a sales tactic. The same discipline that
-      never let me walk away from a plate mid-service, and never will let me walk away from code.
+      the table has to say a word. So when I ship a build, either mine or someone else's I've
+      taken over, it comes with real support after launch. Not a sales tactic. The same discipline
+      that never let me walk away from a plate mid-service, and never will let me walk away from
+      your code.
     </p>
-    <p style="line-height:1.7;">
+    <p style="margin-bottom:14px; line-height:1.7;">
       I'm not interested in software that just works, same as I was never interested in food that
       was just edible. Kitchens taught me that most systems, culinary or digital, are built to
       exclude somebody. I spent thirty years trying to make sure the people on my line got fed and
       got paid fairly. I'm spending this decade doing the same thing with code — and with soap,
-      sound, and paint on the side, because apparently one art form was never going to be enough
-      to hold everything I've got to say.
+      sound, rainbows, and stories on the side, because apparently one art form was never going to
+      be enough to hold everything I've got to say.
+    </p>
+    <p style="line-height:1.7;">
+      If you want to see what happens when the cooking and the code and the art all land on the
+      same plate at once, go look at
+      <a href="https://naked.chefmyklove.com" target="_blank" rel="noopener">naked.chefmyklove.com</a>.
+      Five bucks gets you the browser-based edition — a piece built the same way I build
+      everything else now: by hand, from scratch, with no shortcuts and nothing served
+      half-finished.
     </p>
   </div>
 </div>
