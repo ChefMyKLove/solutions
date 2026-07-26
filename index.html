@@ -245,6 +245,30 @@ body{
 .bubble[data-panel="chef"]{ top: 70%; left: 62%; }
 .bubble[data-panel="pass"]{ top: 81%; left: 30%; }
 .bubble[data-panel="foh"]{  top: 51%; left: 72%; }
+
+/* Nav tooltips are real sibling elements (built in JS, same pattern as
+   .grab-hint below) rather than a ::after pseudo-element of .bubble -
+   .bubble has backdrop-filter on it, and a pseudo-element is still part
+   of that same element's rendering, so it inherited the blur meant for
+   the glass effect instead of sitting crisply on top of it. */
+.nav-tooltip{
+  position:absolute;
+  transform: translate(-50%, -100%) translateY(-10px);
+  background: rgba(31,27,22,0.92);
+  color: var(--paper);
+  font-family:'Space Mono', monospace;
+  font-size: 11px;
+  font-weight:700;
+  letter-spacing: 0.5px;
+  padding: 8px 14px;
+  border-radius: 12px;
+  white-space:nowrap;
+  opacity:0;
+  pointer-events:none;
+  transition: opacity 0.2s ease;
+  z-index: 3;
+  box-shadow: 0 6px 16px rgba(0,0,0,0.3);
+}
 .bubble-deco{
   cursor: grab;
 }
@@ -272,6 +296,39 @@ body{
    cursor still wins over the link's pointer cursor (equal specificity,
    later rule wins). */
 .bubble.dragging{ cursor: grabbing; }
+
+.grab-hint{
+  position:absolute;
+  /* left/top are set per-frame in JS to the target bubble's actual x/y;
+     this transform does the centering-above-the-ball math using the
+     hint's own box size, so it re-centers correctly regardless of which
+     of the two strings (different widths) is currently showing. */
+  transform: translate(-50%, -100%);
+  background: var(--ember);
+  color: var(--paper);
+  font-family:'Space Mono', monospace;
+  font-size: 12px;
+  font-weight:700;
+  letter-spacing: 0.3px;
+  padding: 6px 12px;
+  border-radius: 14px;
+  white-space:nowrap;
+  pointer-events:none;
+  z-index: 3;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.25);
+}
+.grab-hint::after{
+  content:'';
+  position:absolute;
+  bottom:-6px;
+  left:50%;
+  transform: translateX(-50%);
+  border-width: 6px 6px 0 6px;
+  border-style: solid;
+  border-color: var(--ember) transparent transparent transparent;
+}
 
 .ambient-pop{
   position:absolute;
@@ -695,9 +752,9 @@ body{
     <h1 class="bubble bubble-content bubble-brand" id="bubble-brand">ChefMyKLove</h1>
     <div class="bubble bubble-content bubble-bizname" id="bubble-bizname">Custom Software Solutions<br>+ Digital Management</div>
     <div class="bubble bubble-content bubble-tagline" id="bubble-tagline">I ran kitchens for thirty years. Now I'm cooking up your next great web experience.</div>
-    <button class="bubble" data-panel="menu">The Menu</button>
-    <button class="bubble" data-panel="chef">The Chef</button>
-    <button class="bubble" data-panel="pass">The Pass</button>
+    <button class="bubble" data-panel="menu" data-tooltip="services and pricing">The Menu</button>
+    <button class="bubble" data-panel="chef" data-tooltip="about me">The Chef</button>
+    <button class="bubble" data-panel="pass" data-tooltip="past client portfolio">The Pass</button>
     <button class="bubble" data-panel="foh">Front of House</button>
     <!-- Mobile-only fallback: decorative bubbles (including the randomized
          rainbow link below) only ever spawn via the desktop physics JS,
@@ -1714,6 +1771,112 @@ body{
         decoEls.push(deco);
         scatterBubbles.push(deco);
       }
+
+      // One more med/small deco bubble (different one than the rainbow
+      // link, picked from that same not-the-2-biggest pool) carries a
+      // "grab me..." / "now fling me..." speech-bubble hint - hidden
+      // until hovered, and reusable every time (never permanently
+      // dismissed), rather than a one-shot onboarding tip.
+      var grabMeIndex = rainbowLinkIndex;
+      while (grabMeIndex === rainbowLinkIndex) {
+        grabMeIndex = Math.floor(Math.random() * rainbowLinkPoolSize);
+      }
+      (function setUpGrabHint() {
+        var grabMeEl = decoEls[grabMeIndex];
+        var grabHint = document.createElement('div');
+        grabHint.className = 'grab-hint';
+        grabHint.textContent = 'grab me…';
+        grabHint.setAttribute('aria-hidden', 'true');
+        nav.appendChild(grabHint);
+
+        var grabHintBody = null;
+        var isHovering = false;
+        var isDragging = false;
+
+        function refreshVisibility() {
+          grabHint.style.opacity = (isHovering || isDragging) ? '1' : '0';
+        }
+
+        grabMeEl.addEventListener('pointerenter', function() {
+          isHovering = true;
+          if (!isDragging) grabHint.textContent = 'grab me…';
+          refreshVisibility();
+        });
+        grabMeEl.addEventListener('pointerleave', function() {
+          isHovering = false;
+          refreshVisibility();
+        });
+        grabMeEl.addEventListener('pointerdown', function() {
+          isDragging = true;
+          grabHint.textContent = 'now fling me…';
+          refreshVisibility();
+        });
+        function onRelease() {
+          isDragging = false;
+          grabHint.textContent = 'grab me…'; // reset, ready for next hover
+          refreshVisibility();
+        }
+        grabMeEl.addEventListener('pointerup', onRelease);
+        grabMeEl.addEventListener('pointercancel', onRelease);
+
+        // Tracks the target's actual physics position every frame,
+        // forever - left/top (not transform) so the CSS
+        // translate(-50%,-100%) below can do the centering-above-the-
+        // ball math itself, adapting to whichever of the two strings is
+        // currently showing.
+        function positionGrabHint() {
+          if (!grabHintBody) {
+            for (var gi = 0; gi < bodies.length; gi++) {
+              if (bodies[gi].el === grabMeEl) { grabHintBody = bodies[gi]; break; }
+            }
+          }
+          if (grabHintBody) {
+            grabHint.style.left = grabHintBody.x.toFixed(1) + 'px';
+            grabHint.style.top = (grabHintBody.y - grabHintBody.r - 16).toFixed(1) + 'px';
+          }
+          requestAnimationFrame(positionGrabHint);
+        }
+        requestAnimationFrame(positionGrabHint);
+      })();
+
+      // Hover/focus tooltips for any bubble carrying data-tooltip (the 3
+      // labeled nav buttons) - a real sibling element per the same
+      // reasoning as .grab-hint above (a ::after pseudo-element would
+      // inherit .bubble's own backdrop-filter blur instead of rendering
+      // crisply on top of it), tracked to the target's live physics
+      // position every frame since these bubbles drift/tilt too.
+      function setUpHoverTooltip(el) {
+        var text = el.getAttribute('data-tooltip');
+        if (!text) return;
+        var tip = document.createElement('div');
+        tip.className = 'nav-tooltip';
+        tip.textContent = text;
+        tip.setAttribute('aria-hidden', 'true');
+        nav.appendChild(tip);
+
+        var tipBody = null;
+        function show() { tip.style.opacity = '1'; }
+        function hide() { tip.style.opacity = '0'; }
+        el.addEventListener('pointerenter', show);
+        el.addEventListener('pointerleave', hide);
+        el.addEventListener('focus', show);
+        el.addEventListener('blur', hide);
+
+        function positionTip() {
+          if (!tipBody) {
+            for (var ti = 0; ti < bodies.length; ti++) {
+              if (bodies[ti].el === el) { tipBody = bodies[ti]; break; }
+            }
+          }
+          if (tipBody) {
+            tip.style.left = tipBody.x.toFixed(1) + 'px';
+            tip.style.top = (tipBody.y - tipBody.r - 10).toFixed(1) + 'px';
+          }
+          requestAnimationFrame(positionTip);
+        }
+        requestAnimationFrame(positionTip);
+      }
+      Array.prototype.forEach.call(document.querySelectorAll('.bubble[data-tooltip]'), setUpHoverTooltip);
 
       var fieldRect = stage.getBoundingClientRect();
       var fieldW = fieldRect.width, fieldH = fieldRect.height;
