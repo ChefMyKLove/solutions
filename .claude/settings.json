@@ -75,7 +75,9 @@
       "Bash(git checkout *)",
       "Bash(git stash *)",
       "Bash(git pull *)",
-      "Bash(git rev-list *)"
+      "Bash(git rev-list *)",
+      "Bash(gh api *)",
+      "Bash(gh repo *)"
     ],
     "additionalDirectories": [
       "d:\\Desktop\\software solutions",
