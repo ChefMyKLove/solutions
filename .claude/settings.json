@@ -85,7 +85,8 @@
       "Bash('C:\\\\Users\\\\micha/.claude/skills/gstack/browse/dist/browse' click *)",
       "Bash('C:\\\\Users\\\\micha/.claude/skills/gstack/browse/dist/browse' screenshot *)",
       "Bash('C:\\\\Users\\\\micha/.claude/skills/gstack/browse/dist/browse' snapshot *)",
-      "Bash('C:\\\\Users\\\\micha/.claude/skills/gstack/browse/dist/browse' hover *)"
+      "Bash('C:\\\\Users\\\\micha/.claude/skills/gstack/browse/dist/browse' hover *)",
+      "Bash(cat CNAME; echo \"---\"; find /d/Desktop -maxdepth 2 -iname \"*selina*\" 2>/dev/null)"
     ],
     "additionalDirectories": [
       "d:\\Desktop\\software solutions",

@@ -1630,6 +1630,7 @@ body{
     </div>
 
     <form class="intake" id="fohIntakeForm">
+      <input type="text" name="_gotcha" style="position:absolute; left:-9999px" tabindex="-1" autocomplete="off">
       <div class="field"><label for="f-name">Your Name</label><input type="text" id="f-name" name="name" required></div>
       <div class="field"><label for="f-email">Email</label><input type="email" id="f-email" name="email" required></div>
       <div class="field"><label for="f-what">What's the site/app for?</label><textarea id="f-what" name="project_description" placeholder="e.g. portfolio for my paintings, storefront for handmade jewelry, booking tool for my studio"></textarea></div>
@@ -1657,7 +1658,7 @@ body{
           <label><input type="radio" name="email_need" value="No"> No</label>
         </div>
       </div>
-      <button type="submit">Send Order to the Kitchen</button>
+      <button type="submit" id="fohSubmitBtn" disabled>Send Order to the Kitchen</button>
       <p class="form-status" id="fohFormStatus" aria-live="polite" hidden></p>
       <p style="font-size:12px; margin-top:10px; color:var(--slate);">or just email <a href="mailto:solutions@chefmyklove.com">solutions@chefmyklove.com</a> directly</p>
     </form>
@@ -1753,10 +1754,50 @@ body{
 </script>
 
 <script>
-  document.getElementById('fohIntakeForm').addEventListener('submit', function(e) {
-    e.preventDefault();
-    submitIntake(this, document.getElementById('fohFormStatus'));
-  });
+  (function() {
+    var FORMSPREE_ENDPOINT = 'https://formspree.io/f/mrenjzzl';
+    var MIN_FILL_MS = 3000; // faster than this reads as a bot, not a person
+    var form = document.getElementById('fohIntakeForm');
+    var submitBtn = document.getElementById('fohSubmitBtn');
+    var statusEl = document.getElementById('fohFormStatus');
+    var loadTime = Date.now();
+
+    // JS gate: button starts disabled in markup; only a browser that runs
+    // this script ever enables it, which filters out bots that skip JS.
+    submitBtn.disabled = false;
+
+    form.addEventListener('submit', async function(e) {
+      e.preventDefault();
+
+      if (form.querySelector('[name="_gotcha"]').value) {
+        return; // honeypot tripped - drop silently
+      }
+      if (Date.now() - loadTime < MIN_FILL_MS) {
+        statusEl.hidden = false;
+        statusEl.textContent = 'Please take a moment to review your order before sending.';
+        return;
+      }
+
+      statusEl.hidden = false;
+      statusEl.textContent = 'Sending...';
+      try {
+        var res = await fetch(FORMSPREE_ENDPOINT, {
+          method: 'POST',
+          body: new FormData(form),
+          headers: { Accept: 'application/json' }
+        });
+        if (res.ok) {
+          statusEl.textContent = "Order received — I'll be in touch soon.";
+          form.reset();
+        } else {
+          throw new Error('Submission failed');
+        }
+      } catch (err) {
+        statusEl.textContent =
+          "Something didn't fire — email solutions@chefmyklove.com directly and I'll get it.";
+      }
+    });
+  })();
 </script>
 
 <script>
