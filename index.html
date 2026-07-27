@@ -56,6 +56,87 @@ body{
   will-change: transform;
 }
 #stage.kitchen-visible #kitchen-bg{ opacity:1; }
+/* Decorative wordmark fused into the background layer (distinct from the
+   real, accessible h1.bubble-brand bubble - this is aria-hidden and purely
+   visual). Lives as its own element rather than inside #kitchen-bg so it
+   isn't run through that element's brightness/saturate/sepia filter, which
+   would muddy the flame gradient - but it's driven by the exact same JS
+   parallax transform so the two move in lockstep. */
+#brand-backdrop{
+  position:absolute;
+  inset:0;
+  pointer-events:none;
+  opacity:0;
+  transition: opacity 1.3s ease;
+  will-change: transform;
+  overflow:hidden;
+}
+#stage.kitchen-visible #brand-backdrop{ opacity:1; }
+#brand-backdrop-name,
+#brand-backdrop-tagline{
+  position:absolute;
+  left:50%;
+  width:100vw;
+  text-align:center;
+  /* Same vertical flame-gradient stops as the canvas boil's drawFlames()
+     (255,196,90 hot core -> 216,92,48 mid -> 184,69,46 fade), clipped to
+     the text and kept very low-alpha so it reads as barely-there rather
+     than a solid heading. background-size taller than the box + the
+     flicker animation below slides the gradient through the text like it
+     is itself guttering. */
+  background: linear-gradient(180deg, rgba(255,196,90,0.22) 0%, rgba(216,92,48,0.16) 55%, rgba(184,69,46,0.05) 100%);
+  background-size: 100% 240%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: flame-flicker 5s ease-in-out infinite;
+}
+#brand-backdrop-name{
+  top: 30%;
+  transform: translate(-50%, -50%);
+  font-family:'Archivo Black', 'Space Mono', monospace;
+  font-weight:400;
+  letter-spacing: -2px;
+  white-space:nowrap;
+  /* vw-based sizing has to account for the full 11-character word fitting
+     on one line (no wrap) - 15vw ran the name off the right edge of the
+     viewport at common desktop widths. */
+  font-size: clamp(34px, 12vw, 200px);
+}
+#brand-backdrop-tagline{
+  /* Overlaps the lower portion of the name above it and continues below -
+     the name's own box is vertically centered on its `top`, so starting
+     this a little past that same point lands inside the name's bottom
+     edge instead of cleanly beneath it. */
+  top: 33%;
+  transform: translateX(-50%);
+  font-family:'Space Mono', monospace;
+  font-weight:700;
+  /* Tight letter-spacing (was 3px) - on one line, spacing gets multiplied
+     across all ~46 characters, so even a couple extra px per character
+     was enough to push the line past the viewport edge. */
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  white-space: nowrap;
+  /* font-size has to scale down faster than vw alone would (2.8vw, not
+     the previous 2.6vw wrap-friendly size) so this one unbroken line
+     actually fits inside the viewport at common widths instead of
+     overflowing past #brand-backdrop's overflow:hidden edge. */
+  font-size: clamp(9px, 2.8vw, 40px);
+  padding: 0 4vw;
+}
+@keyframes flame-flicker{
+  0%, 100%{ background-position: 0% 0%; opacity:0.82; }
+  33%{ background-position: 0% 35%; opacity:1; }
+  66%{ background-position: 0% 15%; opacity:0.9; }
+}
+@media (prefers-reduced-motion: reduce){
+  #brand-backdrop-name, #brand-backdrop-tagline{ animation:none; }
+}
+@media (max-width: 700px){
+  #brand-backdrop-name{ letter-spacing:-1px; }
+  #brand-backdrop-tagline{ top: 36%; }
+}
 #kitchen-bg::after{
   content:"";
   position:absolute;
@@ -745,6 +826,10 @@ body{
 
 <div id="stage">
   <div id="kitchen-bg" aria-hidden="true"></div>
+  <div id="brand-backdrop" aria-hidden="true">
+    <div id="brand-backdrop-name">ChefMyKLove</div>
+    <div id="brand-backdrop-tagline">Custom Software Solutions + Digital Management</div>
+  </div>
   <div id="grain-overlay" aria-hidden="true"></div>
   <canvas id="boil-canvas" aria-hidden="true"></canvas>
 
@@ -755,7 +840,7 @@ body{
     <button class="bubble" data-panel="menu" data-tooltip="services and pricing">The Menu</button>
     <button class="bubble" data-panel="chef" data-tooltip="about me">The Chef</button>
     <button class="bubble" data-panel="pass" data-tooltip="past client portfolio">The Pass</button>
-    <button class="bubble" data-panel="foh">Front of House</button>
+    <button class="bubble" data-panel="foh" data-tooltip="place your order">Front of House</button>
     <!-- Mobile-only fallback: decorative bubbles (including the randomized
          rainbow link below) only ever spawn via the desktop physics JS,
          which bails out entirely under 700px width - without this, mobile
@@ -814,7 +899,11 @@ body{
   }
 
   function potGeometry(w, h) {
-    var potW = w * 0.34;
+    // Narrow viewports (phones) are much taller relative to their width
+    // than desktop, so the same 0.34 ratio (sized for wide screens) reads
+    // as a slim column instead of a stockpot - double it below the mobile
+    // breakpoint used elsewhere in this file (see maxBubblesFinal).
+    var potW = w * (w < 700 ? 0.68 : 0.34);
     var potX = w / 2;
     // Pushed down near the bottom edge (was 0.60-0.94, stranding it in
     // the middle of the frame) - reads as a pot resting on a stove near
@@ -1684,6 +1773,12 @@ body{
     if (!kitchenBg) return;
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
 
+    // Brand wordmark layer rides the exact same transform as the photo
+    // (not just a similarly-tuned one) so the two never visibly drift
+    // apart - it's meant to read as fused into the background, not as an
+    // independent parallax layer of its own.
+    var brandBackdrop = document.getElementById('brand-backdrop');
+
     var targetX = 0, targetY = 0, curX = 0, curY = 0;
 
     document.addEventListener('mousemove', function(e) {
@@ -1696,7 +1791,9 @@ body{
     function tick() {
       curX += (targetX - curX) * 0.06;
       curY += (targetY - curY) * 0.06;
-      kitchenBg.style.transform = 'translate(' + curX.toFixed(2) + 'px, ' + curY.toFixed(2) + 'px)';
+      var t = 'translate(' + curX.toFixed(2) + 'px, ' + curY.toFixed(2) + 'px)';
+      kitchenBg.style.transform = t;
+      if (brandBackdrop) brandBackdrop.style.transform = t;
       requestAnimationFrame(tick);
     }
     requestAnimationFrame(tick);

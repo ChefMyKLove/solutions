@@ -78,7 +78,14 @@
       "Bash(git pull *)",
       "Bash(git rev-list *)",
       "Bash(gh api *)",
-      "Bash(gh repo *)"
+      "Bash(gh repo *)",
+      "Bash('C:\\\\Users\\\\micha/.claude/skills/gstack/browse/dist/browse' viewport *)",
+      "Bash('C:\\\\Users\\\\micha/.claude/skills/gstack/browse/dist/browse' js *)",
+      "Bash('C:\\\\Users\\\\micha/.claude/skills/gstack/browse/dist/browse' reload *)",
+      "Bash('C:\\\\Users\\\\micha/.claude/skills/gstack/browse/dist/browse' click *)",
+      "Bash('C:\\\\Users\\\\micha/.claude/skills/gstack/browse/dist/browse' screenshot *)",
+      "Bash('C:\\\\Users\\\\micha/.claude/skills/gstack/browse/dist/browse' snapshot *)",
+      "Bash('C:\\\\Users\\\\micha/.claude/skills/gstack/browse/dist/browse' hover *)"
     ],
     "additionalDirectories": [
       "d:\\Desktop\\software solutions",
