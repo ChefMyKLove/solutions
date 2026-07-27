@@ -753,10 +753,43 @@ body{
 .intake button:hover{ opacity:0.88; }
 
 .tasting-item{
+  display:flex;
+  align-items:flex-start;
+  gap:14px;
   padding: 16px 0;
   border-bottom: 1px solid var(--line);
 }
 .tasting-item:last-child{ border-bottom:none; }
+.tasting-item .body{ flex:1; min-width:0; }
+.tasting-thumb{
+  display:block;
+  flex-shrink:0;
+  width:112px;
+  height:112px;
+  border-radius:50%;
+  background-size:cover;
+  background-position:center;
+  border: 1.5px solid rgba(184,69,46,0.55);
+  box-shadow: 0 6px 14px rgba(0,0,0,0.18), inset 0 1px 1px rgba(255,255,255,0.5);
+  animation: tasting-bob 4s ease-in-out infinite;
+  transition: transform 0.2s ease;
+}
+a.tasting-thumb{ cursor:pointer; }
+a.tasting-thumb:hover, a.tasting-thumb:focus-visible{
+  /* Pause the bob keyframe first - otherwise it keeps overwriting transform
+     every frame and the hover scale below would never actually show. */
+  animation-play-state: paused;
+  transform: scale(1.1);
+  outline: 2px solid var(--sage);
+  outline-offset: 2px;
+}
+@keyframes tasting-bob{
+  0%, 100%{ transform:translateY(0); }
+  50%{ transform:translateY(-4px); }
+}
+@media (prefers-reduced-motion: reduce){
+  .tasting-thumb{ animation:none; }
+}
 .tasting-item .top{
   display:flex;
   justify-content:space-between;
@@ -1569,48 +1602,60 @@ body{
     <h2 id="panel-pass-title" style="font-family:'Space Mono',monospace; margin-bottom:16px;">Tickets Fired</h2>
 
     <div class="tasting-item">
-      <div class="top">
-        <span class="site"><a href="https://kathleenyearwood.com" target="_blank" rel="noopener">kathleenyearwood.com</a></span>
-        <span class="tag">Artist website</span>
-      </div>
-      <div class="note">
-        Flat HTML, one hand-written stylesheet, a small script for the background animation —
-        zero dependencies, zero build step. Hosted on GitHub Pages under her own domain. An
-        artist site doesn't need a framework behind it, it needs to load fast and never break.
-      </div>
-    </div>
-
-    <div class="tasting-item">
-      <div class="top">
-        <span class="site"><a href="https://selinamartin.com" target="_blank" rel="noopener">selinamartin.com</a></span>
-        <span class="tag">Artist website</span>
-      </div>
-      <div class="note">
-        Plain HTML, no framework, no build step, hosted on GitHub Pages under her own domain.
-        Photo shoots, live performance clips, and a press kit sit right in the repo and get
-        served exactly as they are — nothing to compile, nothing to break.
+      <a class="tasting-thumb" href="https://kathleenyearwood.com" target="_blank" rel="noopener" style="background-image:url('assets/thumbs/kathleenyearwood.png');" aria-label="Open kathleenyearwood.com in a new tab"></a>
+      <div class="body">
+        <div class="top">
+          <span class="site"><a href="https://kathleenyearwood.com" target="_blank" rel="noopener">kathleenyearwood.com</a></span>
+          <span class="tag">Artist website</span>
+        </div>
+        <div class="note">
+          Flat HTML, one hand-written stylesheet, a small script for the background animation —
+          zero dependencies, zero build step. Hosted on GitHub Pages under her own domain. An
+          artist site doesn't need a framework behind it, it needs to load fast and never break.
+        </div>
       </div>
     </div>
 
     <div class="tasting-item">
-      <div class="top">
-        <span class="site"><a href="https://chefmyklove.com" target="_blank" rel="noopener">chefmyklove.com</a></span>
-        <span class="tag">Studio site</span>
+      <a class="tasting-thumb" href="https://selinamartin.com" target="_blank" rel="noopener" style="background-image:url('assets/thumbs/selinamartin.png');" aria-label="Open selinamartin.com in a new tab"></a>
+      <div class="body">
+        <div class="top">
+          <span class="site"><a href="https://selinamartin.com" target="_blank" rel="noopener">selinamartin.com</a></span>
+          <span class="tag">Artist website</span>
+        </div>
+        <div class="note">
+          Plain HTML, no framework, no build step, hosted on GitHub Pages under her own domain.
+          Photo shoots, live performance clips, and a press kit sit right in the repo and get
+          served exactly as they are — nothing to compile, nothing to break.
+        </div>
       </div>
-      <div class="note">
-        The bigger build of the three — same zero-framework philosophy, more surface area:
-        vanilla HTML/CSS/JS with dedicated modules driving bubble physics and animated
-        backgrounds, plus a small backend and a blog. GitHub Pages, custom domain, same house
-        rules as everywhere else here.
+    </div>
+
+    <div class="tasting-item">
+      <a class="tasting-thumb" href="https://chefmyklove.com" target="_blank" rel="noopener" style="background-image:url('assets/thumbs/chefmyklove.png');" aria-label="Open chefmyklove.com in a new tab"></a>
+      <div class="body">
+        <div class="top">
+          <span class="site"><a href="https://chefmyklove.com" target="_blank" rel="noopener">chefmyklove.com</a></span>
+          <span class="tag">Studio site</span>
+        </div>
+        <div class="note">
+          The bigger build of the three — same zero-framework philosophy, more surface area:
+          vanilla HTML/CSS/JS with dedicated modules driving bubble physics and animated
+          backgrounds, plus a small backend and a blog. GitHub Pages, custom domain, same house
+          rules as everywhere else here.
+        </div>
       </div>
     </div>
 
     <div class="tasting-item" style="border-bottom:none;">
-      <div class="top"><span class="site">This page, too</span><span class="tag">Exhibit</span></div>
-      <div class="note">
-        The boil above is hand-rolled Canvas 2D — no animation library, no framework, zero
-        dependencies. If you want to see how it works, view source. That's not a dare, that's
-        the pitch.
+      <div class="tasting-thumb" style="background-image:url('assets/thumbs/solutions.png');" role="img" aria-label="Screenshot of solutions.chefmyklove.com"></div>
+      <div class="body">
+        <div class="top"><span class="site">This page, too</span><span class="tag">Exhibit</span></div>
+        <div class="note">
+          The boil above is hand-rolled Canvas 2D — no animation library, no framework, zero
+          dependencies. If you want to see how it works, view source. That's not a dare, that's
+          the pitch.
+        </div>
       </div>
     </div>
   </div>
