@@ -131,7 +131,7 @@ body{
   66%{ background-position: 0% 15%; opacity:0.9; }
 }
 @media (prefers-reduced-motion: reduce){
-  #brand-backdrop-name, #brand-backdrop-tagline{ animation:none; }
+  #brand-backdrop-name, #brand-backdrop-tagline, .bubble-brand-tagline{ animation:none; }
 }
 @media (max-width: 700px){
   #brand-backdrop-name{ letter-spacing:-1px; }
@@ -171,6 +171,40 @@ body{
    bubble has emerged) - see beginPercolateReveal/resolveStage. */
 #stage.pot-settled #boil-canvas{ opacity:0.32; pointer-events:none; }
 
+/* Deliberately NOT tied to .pot-settled like #boil-canvas above - the
+   flame should stay clearly present even once everything else on the
+   canvas dims to a translucent backdrop, so this overlay keeps its own
+   independent, always-legible opacity (driven per-frame from JS, see
+   updateFlameShimmer) instead of fading down with the rest of the boil. */
+#flame-shimmer-wrap{
+  position:absolute;
+  pointer-events:none;
+  opacity:0;
+  z-index:2;
+}
+#flame-shimmer{
+  position:absolute;
+  inset:0;
+  pointer-events:none;
+  mix-blend-mode:screen;
+  filter:url(#flame-heat-filter);
+  background: radial-gradient(ellipse at 50% 88%, rgba(255,196,90,0.6) 0%, rgba(216,92,48,0.34) 42%, rgba(184,69,46,0) 76%);
+  animation: flame-shimmer-drift 7s ease-in-out infinite, flame-shimmer-pulse 4.5s ease-in-out infinite;
+}
+@keyframes flame-shimmer-drift{
+  0%{ transform: translate(0,0) scale(1) rotate(0deg); }
+  33%{ transform: translate(-2%, -3%) scale(1.05) rotate(-1.5deg); }
+  66%{ transform: translate(2%, -1.5%) scale(0.97) rotate(1.5deg); }
+  100%{ transform: translate(0,0) scale(1) rotate(0deg); }
+}
+@keyframes flame-shimmer-pulse{
+  0%, 100%{ opacity:0.4; }
+  50%{ opacity:0.95; }
+}
+@media (prefers-reduced-motion: reduce){
+  #flame-shimmer{ animation:none; opacity:0.7; }
+}
+
 /* Compound selectors (.bubble.bubble-content, not just .bubble-content) -
    these need to beat the base .bubble rule's font-size/color/weight/
    uppercase/letter-spacing regardless of source order. Two classes on
@@ -191,12 +225,14 @@ body{
   background: rgba(247,243,233,0.26);
 }
 .bubble.bubble-brand{
-  /* 30% bigger across the board (bubble + text together) - was
-     clamp(190px,18vw,215px) / clamp(22px,3vw,30px). */
-  width: clamp(247px, 23.4vw, 280px);
-  height: clamp(247px, 23.4vw, 280px);
+  /* 15% bigger again on top of the previous 30% bump - was
+     clamp(247px,23.4vw,280px) / clamp(29px,3.9vw,39px) - the extra room
+     is for the tagline overlaid into the name's lower portion below, so
+     it doesn't feel cramped. */
+  width: clamp(284px, 26.9vw, 322px);
+  height: clamp(284px, 26.9vw, 322px);
   font-family:'Archivo Black', 'Space Mono', monospace;
-  font-size: clamp(29px, 3.9vw, 39px);
+  font-size: clamp(33px, 4.5vw, 45px);
   font-weight: 400;
   letter-spacing: -0.5px;
   color: var(--ember);
@@ -204,6 +240,37 @@ body{
      physics takes over and erupts everything from the pot instead) -
      spread across the now-empty top band so nothing overlaps. */
   top: 19%; left: 20%;
+}
+.bubble-brand-name{
+  /* Absolutely positioned (not flex-stacked) so .bubble-brand-tagline
+     below can overlap into its lower edge - matches how
+     #brand-backdrop-tagline overlaps #brand-backdrop-name in the
+     full-viewport version instead of sitting cleanly beneath it. */
+  position: absolute;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  white-space: nowrap;
+}
+.bubble-brand-tagline{
+  /* Same treatment as #brand-backdrop-tagline: translucent flame-gradient
+     text via background-clip, overlapping the name's own lower portion
+     rather than a solid caption stacked cleanly below it. */
+  position: absolute;
+  left: 50%;
+  top: 51.5%;
+  transform: translateX(-50%);
+  white-space: nowrap;
+  font-family:'Space Mono', monospace;
+  font-size: clamp(10px, 1.3vw, 15px);
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  background: linear-gradient(180deg, rgba(255,196,90,0.65) 0%, rgba(216,92,48,0.5) 55%, rgba(184,69,46,0.2) 100%);
+  background-size: 100% 240%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: flame-flicker 5s ease-in-out infinite;
 }
 .bubble.bubble-bizname{
   width: clamp(195px, 19vw, 220px);
@@ -519,7 +586,12 @@ body{
      that only kicks in above ~900px - below that they clamp to their
      floor, which is far too large for a narrow phone screen. */
   .bubble.bubble-brand{
-    width:182px; height:182px; font-size:23px;
+    width:209px; height:209px; font-size:26px;
+    /* .bubble{position:static} above (for the mobile grid) would
+       otherwise leave .bubble-brand without a positioned ancestor for
+       its absolutely-positioned name/tagline children, which would then
+       anchor against #stage instead of this bubble. */
+    position: relative;
     /* Spans both grid columns - since it's first in DOM order, this
        puts it alone on its own row at the top, centered (place-items:
        center centers it within that full-width area), with every other
@@ -527,6 +599,7 @@ body{
        just another cell in the pair-grid. */
     grid-column: 1 / -1;
   }
+  .bubble-brand-tagline{ font-size: 10px; letter-spacing: 1px; }
   .bubble.bubble-bizname{ width:150px; height:150px; font-size:13px; padding:10px; }
   .bubble.bubble-tagline{ width:150px; height:150px; font-size:13.5px; padding:10px; }
   #boil-again{ position:fixed; top:12px; bottom:auto; z-index:5; }
@@ -763,6 +836,8 @@ body{
 .tasting-item .body{ flex:1; min-width:0; }
 .tasting-thumb{
   display:block;
+  position:relative;
+  z-index:1;
   flex-shrink:0;
   width:112px;
   height:112px;
@@ -775,11 +850,14 @@ body{
   transition: transform 0.2s ease;
 }
 a.tasting-thumb{ cursor:pointer; }
-a.tasting-thumb:hover, a.tasting-thumb:focus-visible{
-  /* Pause the bob keyframe first - otherwise it keeps overwriting transform
-     every frame and the hover scale below would never actually show. */
-  animation-play-state: paused;
-  transform: scale(1.1);
+.tasting-thumb:hover, a.tasting-thumb:focus-visible{
+  /* A running (or even paused) CSS animation keeps overriding "transform"
+     with its own frozen keyframe value, so pausing alone isn't enough to
+     let the scale below take effect - the animation has to come off the
+     property entirely. */
+  animation: none;
+  transform: scale(3);
+  z-index:2;
   outline: 2px solid var(--sage);
   outline-offset: 2px;
 }
@@ -866,8 +944,27 @@ a.tasting-thumb:hover, a.tasting-thumb:focus-visible{
   <div id="grain-overlay" aria-hidden="true"></div>
   <canvas id="boil-canvas" aria-hidden="true"></canvas>
 
+  <!-- Heat-shimmer over the burner flames drawn on #boil-canvas above.
+       #flame-shimmer-wrap is positioned/sized in JS every frame (see
+       updateFlameShimmer in the boil-canvas script) to track the flame's
+       on-screen position as the pot moves with viewport size. Its own
+       opacity is driven by the same glowAlpha the canvas flames use, so
+       it fades in/out in lockstep with them; the drift/pulse animation
+       and the SVG turbulence distortion are what actually sell the heat
+       haze, layered on the inner div so the two opacities compose
+       instead of fighting over one CSS property. -->
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+    <filter id="flame-heat-filter" x="-60%" y="-60%" width="220%" height="220%">
+      <feTurbulence id="flame-turbulence" type="fractalNoise" baseFrequency="0.0105 0.0120" numOctaves="4" seed="7" result="flame-noise"></feTurbulence>
+      <feDisplacementMap in="SourceGraphic" in2="flame-noise" scale="115" xChannelSelector="R" yChannelSelector="G"></feDisplacementMap>
+    </filter>
+  </svg>
+  <div id="flame-shimmer-wrap" aria-hidden="true">
+    <div id="flame-shimmer"></div>
+  </div>
+
   <nav id="bubble-nav" aria-label="Site sections">
-    <h1 class="bubble bubble-content bubble-brand" id="bubble-brand">ChefMyKLove</h1>
+    <h1 class="bubble bubble-content bubble-brand" id="bubble-brand"><span class="bubble-brand-name">ChefMyKLove</span><span class="bubble-brand-tagline">Software Solutions</span></h1>
     <div class="bubble bubble-content bubble-bizname" id="bubble-bizname">Custom Software Solutions<br>+ Digital Management</div>
     <div class="bubble bubble-content bubble-tagline" id="bubble-tagline">I ran kitchens for thirty years. Now I'm cooking up your next great web experience.</div>
     <button class="bubble" data-panel="menu" data-tooltip="services and pricing">The Menu</button>
@@ -886,14 +983,22 @@ a.tasting-thumb:hover, a.tasting-thumb:focus-visible{
 
   <button id="boil-again" type="button">Boil Again &#8635;</button>
 
-  <!-- Ignition is one-shot; the gas hiss and bubbling are seamless loops
-       meant to play together as a low background layer. None of these
-       can actually autoplay with sound - browsers block that outright -
-       so playback is kicked off from the first genuine user interaction,
-       wired up in the script below. -->
+  <!-- Ignition is one-shot; the gas hiss is a seamless loop underneath it.
+       Bubbling is a permanent base loop (plain pot boil, tightly trimmed
+       so its own loop point is inaudible) that never stops once started -
+       there's always a boil sound playing. Three accent recordings (rice,
+       beans, a second pot-of-water take) fade in and back out over that
+       base one at a time at randomized intervals, adding texture without
+       ever silencing the base. Sound defaults on and playback is attempted
+       immediately on load; browsers that block audible autoplay without a
+       prior gesture fall back to starting on the first genuine user
+       interaction instead, wired up in the script below. -->
   <audio id="sfx-ignition" src="assets/sfx-ignition.mp3" preload="auto"></audio>
   <audio id="sfx-gas" src="assets/sfx-gas-hiss.mp3" preload="auto" loop></audio>
-  <audio id="sfx-bubbling" src="assets/sfx-bubbling.mp3" preload="auto" loop></audio>
+  <audio id="sfx-bubbling-base" src="assets/sfx-bubbling-base.mp3" preload="auto" loop></audio>
+  <audio id="sfx-bubbling-rice" src="assets/sfx-bubbling-rice.mp3" preload="auto" loop></audio>
+  <audio id="sfx-bubbling-beans" src="assets/sfx-bubbling-beans.mp3" preload="auto" loop></audio>
+  <audio id="sfx-bubbling-water" src="assets/sfx-bubbling-water.mp3" preload="auto" loop></audio>
   <button id="sound-toggle" type="button" aria-pressed="true">Sound On &#9834;</button>
 </div>
 
@@ -1004,7 +1109,41 @@ a.tasting-thumb:hover, a.tasting-thumb:focus-visible{
 </script>
 
 <script>
-  function startBoilRender(canvas) {
+  // Tracks the flame's on-screen position (via the same potGeometry used
+  // to draw it on canvas) every frame, and drives the heat-turbulence
+  // distortion so it drifts instead of sitting static. Opacity is driven
+  // straight from glowAlpha - same fade-in the canvas flame itself uses -
+  // so the shimmer appears/disappears in lockstep with the flame, but
+  // (unlike the canvas) never gets dimmed by .pot-settled afterward.
+  var flameShimmerWrap = document.getElementById('flame-shimmer-wrap');
+  var flameTurbulence = document.getElementById('flame-turbulence');
+
+  function updateFlameShimmer(w, h, glowAlpha, drawT, reducedMotion) {
+    if (!flameShimmerWrap) return;
+    var pot = potGeometry(w, h);
+    var boxW = pot.potW * 0.95;
+    var boxH = pot.potW * 0.55;
+    flameShimmerWrap.style.width = boxW + 'px';
+    flameShimmerWrap.style.height = boxH + 'px';
+    flameShimmerWrap.style.left = (pot.potX - boxW / 2) + 'px';
+    flameShimmerWrap.style.top = (pot.potBottom - boxH) + 'px';
+    flameShimmerWrap.style.opacity = glowAlpha;
+
+    if (!reducedMotion && flameTurbulence) {
+      var freq = 0.0105 + 0.0012 * Math.sin(drawT / 3100) + 0.0007 * Math.cos(drawT / 1900 + 1.3);
+      flameTurbulence.setAttribute('baseFrequency', freq.toFixed(4) + ' ' + (freq * 1.15).toFixed(4));
+    }
+  }
+
+  // instantReveal: skip the multi-second glow/pot fade-in ramp and start
+  // already fully visible - used when the animated intro shouldn't replay
+  // (reduced motion, or returning within the same session) but the pot
+  // and flames still need to actually render instead of the canvas
+  // staying permanently blank for the rest of the visit.
+  // reducedMotion: also freezes the flame/glow flicker (no sin-wave
+  // jitter) and stops spawning rising bubbles, so what's left is a
+  // static-but-present pot instead of a quieter version of the animation.
+  function startBoilRender(canvas, instantReveal, reducedMotion) {
     var ctx = canvas.getContext('2d');
     var dpr = window.devicePixelRatio || 1;
     var rng = mulberry32(Date.now() & 0xffffffff);
@@ -1023,25 +1162,27 @@ a.tasting-thumb:hover, a.tasting-thumb:focus-visible{
     window.addEventListener('resize', resize);
 
     var maxBubblesFinal = window.innerWidth < 700 ? 20 : 40;
-    var boilStartTime = null;
     var lastSpawnTime = 0;
 
-    // Starts as a handful of individually-noticeable bubbles and ramps up
-    // to the full density over the ~6s of ambient-only boil (3s dark
-    // stage + 3s percolating over the photo before content/nav bubbles
-    // join in) - reads as the boil building rather than an instant sheet
-    // of tiny bubbles all at once.
-    function spawnIfNeeded(w, h, now) {
-      if (boilStartTime === null) boilStartTime = now;
-      var elapsed = now - boilStartTime;
-      var rampT = Math.min(elapsed / 6000, 1);
+    // No bubbles at all until the pot itself starts fading in (POT_START_MS)
+    // - otherwise foam would appear to rise out of thin air before there's
+    // any pot on screen for it to be rising out of. From there it starts as
+    // a handful of individually-noticeable bubbles and ramps up to the full
+    // density over ~6s, reading as the boil building rather than an instant
+    // sheet of tiny bubbles all at once.
+    function spawnIfNeeded(w, h, elapsedMs) {
+      if (elapsedMs < POT_START_MS) return;
+      var sincePot = elapsedMs - POT_START_MS;
+      var rampT = Math.min(sincePot / 6000, 1);
       var target = Math.round(3 + rampT * (maxBubblesFinal - 3));
       var cooldown = 320 - rampT * 230; // 320ms apart early on, 90ms once boiling hard
-      if (bubbles.length < target && now - lastSpawnTime > cooldown) {
+      if (bubbles.length < target && elapsedMs - lastSpawnTime > cooldown) {
         bubbles.push(createAmbientBubble(rng, w, h));
-        lastSpawnTime = now;
+        lastSpawnTime = elapsedMs;
       }
     }
+
+    function clamp01(x) { return Math.max(0, Math.min(1, x)); }
 
     function drawFlames(potX, potBottom, potW, t) {
       var flameCount = 5;
@@ -1065,20 +1206,33 @@ a.tasting-thumb:hover, a.tasting-thumb:focus-visible{
       }
     }
 
-    function drawPotAndBurner(w, h, t) {
+    function drawPotAndBurner(w, h, t, glowAlpha, potAlpha) {
       var pot = potGeometry(w, h);
 
-      // Burner glow - flickers gently
-      var flicker = 0.85 + Math.sin(t / 260) * 0.15;
-      var glowRadius = pot.potW * 1.1 * flicker;
-      var glow = ctx.createRadialGradient(pot.potX, pot.potBottom, 4, pot.potX, pot.potBottom, glowRadius);
-      glow.addColorStop(0, 'rgba(216,92,48,' + (0.8 * flicker).toFixed(2) + ')');
-      glow.addColorStop(0.45, 'rgba(184,69,46,' + (0.32 * flicker).toFixed(2) + ')');
-      glow.addColorStop(1, 'rgba(184,69,46,0)');
-      ctx.fillStyle = glow;
-      ctx.fillRect(0, pot.potBottom - glowRadius, w, h - (pot.potBottom - glowRadius));
+      // Burner glow + flames fade in first (the "click catches" moment) -
+      // skip the draw entirely at alpha 0 so the opening frames are a true
+      // black screen, not just a very faint glow.
+      if (glowAlpha > 0) {
+        ctx.save();
+        ctx.globalAlpha = glowAlpha;
+        var flicker = 0.85 + Math.sin(t / 260) * 0.15;
+        var glowRadius = pot.potW * 1.1 * flicker;
+        var glow = ctx.createRadialGradient(pot.potX, pot.potBottom, 4, pot.potX, pot.potBottom, glowRadius);
+        glow.addColorStop(0, 'rgba(216,92,48,' + (0.8 * flicker).toFixed(2) + ')');
+        glow.addColorStop(0.45, 'rgba(184,69,46,' + (0.32 * flicker).toFixed(2) + ')');
+        glow.addColorStop(1, 'rgba(184,69,46,0)');
+        ctx.fillStyle = glow;
+        ctx.fillRect(0, pot.potBottom - glowRadius, w, h - (pot.potBottom - glowRadius));
 
-      drawFlames(pot.potX, pot.potBottom, pot.potW, t);
+        drawFlames(pot.potX, pot.potBottom, pot.potW, t);
+        ctx.restore();
+      }
+
+      // Pot fades in after the glow is established, "as the boil gets
+      // going" - skip entirely while still fully transparent.
+      if (potAlpha <= 0) return;
+      ctx.save();
+      ctx.globalAlpha = potAlpha;
 
       // Pot body - metallic gradient trapezoid
       var potGrad = ctx.createLinearGradient(pot.potLeftTop, 0, pot.potRightTop, 0);
@@ -1128,6 +1282,7 @@ a.tasting-thumb:hover, a.tasting-thumb:focus-visible{
       ctx.beginPath();
       ctx.ellipse(pot.potX, pot.potTop + pot.potW * 0.045, pot.mouthHalfWidth * 0.94, pot.potW * 0.075, 0, 0, Math.PI * 2);
       ctx.stroke();
+      ctx.restore();
     }
 
     // Same conic rainbow used by the ambient-pop DOM bubbles (.ambient-pop-
@@ -1166,21 +1321,45 @@ a.tasting-thumb:hover, a.tasting-thumb:focus-visible{
       ctx.stroke();
     }
 
+    var animStartTime = null;
+    // How far the ramp clock gets backdated on the very first frame when
+    // instantReveal is on - large enough that both glowAlpha and potAlpha
+    // (potAlpha finishes later of the two) compute to fully-visible
+    // immediately instead of starting from black.
+    var REVEAL_BACKDATE_MS = POT_START_MS + POT_RAMP_MS;
+
     function frame(t) {
       if (!running) return;
       var w = window.innerWidth, h = window.innerHeight;
       if (lastTime === null) lastTime = t;
       var dt = Math.min((t - lastTime) / 1000, 0.05);
       lastTime = t;
+      if (animStartTime === null) {
+        animStartTime = instantReveal ? (t - REVEAL_BACKDATE_MS) : t;
+      }
+      var elapsedMs = t - animStartTime;
+
+      var glowAlpha = clamp01((elapsedMs - IGNITE_START_MS) / GLOW_RAMP_MS);
+      var potAlpha = clamp01((elapsedMs - POT_START_MS) / POT_RAMP_MS);
+      // Frozen at 0 under reduced motion so the flame/glow flicker (which
+      // is driven by sin(t/...) jitter) holds perfectly still instead of
+      // still visibly dancing while everything else is static.
+      var drawT = reducedMotion ? 0 : t;
 
       ctx.clearRect(0, 0, w, h);
-      drawPotAndBurner(w, h, t);
+      drawPotAndBurner(w, h, drawT, glowAlpha, potAlpha);
+      updateFlameShimmer(w, h, glowAlpha, drawT, reducedMotion);
 
-      spawnIfNeeded(w, h, t);
-      bubbles = bubbles
-        .map(function(b) { return stepAmbientBubble(b, dt); })
-        .filter(function(b) { return !b.popped; });
-      bubbles.forEach(drawBubble);
+      if (!reducedMotion) {
+        spawnIfNeeded(w, h, elapsedMs);
+        bubbles = bubbles
+          .map(function(b) { return stepAmbientBubble(b, dt); })
+          .filter(function(b) { return !b.popped; });
+        ctx.save();
+        ctx.globalAlpha = potAlpha;
+        bubbles.forEach(drawBubble);
+        ctx.restore();
+      }
 
       requestAnimationFrame(frame);
     }
@@ -1194,6 +1373,15 @@ a.tasting-thumb:hover, a.tasting-thumb:focus-visible{
 
 <script>
   var BOIL_DURATION_MS = 3000;
+  // Load-in reveal timing, shared by the canvas render (startBoilRender,
+  // above) and the audio sequencer (below): black screen first, then the
+  // burner glow/flames fade in around the ignition click, then the pot
+  // itself fades in as the boil actually gets going. Kept as named
+  // constants instead of inline numbers so both scripts stay in sync.
+  var IGNITE_START_MS = 450;  // black hold before the glow starts appearing
+  var GLOW_RAMP_MS = 900;     // glow + flames fade-in duration
+  var POT_START_MS = 750;     // pot (and bubbles) start fading in
+  var POT_RAMP_MS = 1400;     // pot fade-in duration
   var stageEl = document.getElementById('stage');
   var boilHandle = null;
   var skipRequested = false;
@@ -1265,6 +1453,17 @@ a.tasting-thumb:hover, a.tasting-thumb:focus-visible{
     var alreadyBoiled = sessionStorage.getItem('boiled') === '1';
 
     if (reduce || alreadyBoiled) {
+      // Previously this returned without ever calling startBoilRender, so
+      // the canvas (pot + flames) stayed permanently blank - fine the
+      // first time reduced-motion is on, but wrong for "already boiled
+      // this session," which fires on every reload after the first and
+      // meant the flame effectively vanished for the rest of the visit.
+      // instantReveal skips the animated buildup (still correct - the
+      // multi-second intro shouldn't replay) while still actually
+      // rendering a persistent pot/flame; reducedMotion (only true in the
+      // reduce branch) additionally freezes the flicker and rising
+      // bubbles so it reads as static rather than a quieter animation.
+      boilHandle = startBoilRender(document.getElementById('boil-canvas'), true, reduce);
       resolveStage();
       return;
     }
@@ -1348,19 +1547,88 @@ a.tasting-thumb:hover, a.tasting-thumb:focus-visible{
 
   document.getElementById('boil-again').addEventListener('click', replayBoilManually);
 
-  // Sound: ignition click, then gas hiss + bubbling looping together
-  // underneath. Browsers flatly refuse to autoplay audio with sound
-  // before the visitor has interacted with the page at all - no amount
-  // of JS trickery gets around that, it's a deliberate anti-annoyance
-  // policy in every major browser. So "start on load" becomes "start on
-  // the very first click/key/touch", which the existing skip-listener
-  // pattern already captures near-instantly for most visitors anyway.
+  // Sound: ignition click, then gas hiss + bubbling fading in underneath as
+  // the visuals do (see IGNITE_START_MS etc. above). Sound defaults on and
+  // we attempt playback immediately on load - but browsers flatly refuse to
+  // autoplay audio with sound before the visitor has interacted with the
+  // page at all, no amount of JS trickery gets around that, it's a
+  // deliberate anti-annoyance policy in every major browser. So the eager
+  // attempt below plays instantly wherever the browser permits it, and
+  // silently falls back to starting on the very first click/key/touch
+  // otherwise - which the existing skip-listener pattern already captures
+  // near-instantly for most visitors anyway.
   (function() {
+    // Kill switch: flip back to true to reconnect sound. While false, the
+    // whole sequence below is skipped entirely (nothing plays, toggle is
+    // hidden) so the site ships silent without deleting any of the audio
+    // work.
+    var SOUND_FEATURE_ENABLED = false;
+
+    var soundToggle = document.getElementById('sound-toggle');
+    if (!SOUND_FEATURE_ENABLED) {
+      if (soundToggle) soundToggle.hidden = true;
+      return;
+    }
+
     var sfxIgnition = document.getElementById('sfx-ignition');
     var sfxGas = document.getElementById('sfx-gas');
-    var sfxBubbling = document.getElementById('sfx-bubbling');
-    var soundToggle = document.getElementById('sound-toggle');
-    var audioStarted = false;
+
+    // The base bubbling loop (plain pot boil, tightly trimmed) plays
+    // continuously for the whole visit once started - it never pauses or
+    // fades to zero, so there's always a boil sound happening. Three
+    // accent recordings (rice, beans, a second pot-of-water take) layer on
+    // top one at a time, fading in, holding, and fading back out at
+    // randomized intervals - texture and variety without ever silencing
+    // the base underneath.
+    var BASE_VOLUME = 0.5;
+    var ACCENT_VOLUME = 0.32;
+    var sfxBubblingBase = document.getElementById('sfx-bubbling-base');
+    var accentLayers = [
+      document.getElementById('sfx-bubbling-rice'),
+      document.getElementById('sfx-bubbling-beans'),
+      document.getElementById('sfx-bubbling-water')
+    ].filter(Boolean);
+    var accentTimer = null;
+
+    // Linear volume ramp starting `delayMs` from now, reaching
+    // `targetVolume` after `durationMs` - used to bring the gas hiss and
+    // bubbling base in under the ignition click at the same pace the
+    // canvas fades in the glow/pot, instead of both blasting in at full
+    // volume the instant playback is allowed to start.
+    function rampVolumeIn(el, targetVolume, delayMs, durationMs) {
+      if (!el) return;
+      el.volume = 0;
+      setTimeout(function() {
+        var steps = 20;
+        var stepMs = durationMs / steps;
+        var i = 0;
+        var timer = setInterval(function() {
+          i++;
+          el.volume = Math.min(targetVolume, targetVolume * (i / steps));
+          if (i >= steps) clearInterval(timer);
+        }, stepMs);
+      }, delayMs);
+    }
+
+    // Fades `el`'s volume from wherever it currently is to `targetVolume`
+    // over `durationMs`, then calls `onDone`. Used for both the accent
+    // fade-in and fade-out.
+    function fadeVolumeTo(el, targetVolume, durationMs, onDone) {
+      if (!el) { if (onDone) onDone(); return; }
+      var steps = 30;
+      var stepMs = durationMs / steps;
+      var startVol = el.volume;
+      var i = 0;
+      var timer = setInterval(function() {
+        i++;
+        var t = i / steps;
+        el.volume = startVol + (targetVolume - startVol) * t;
+        if (i >= steps) {
+          clearInterval(timer);
+          if (onDone) onDone();
+        }
+      }, stepMs);
+    }
 
     var soundEnabled = true;
     try {
@@ -1375,27 +1643,84 @@ a.tasting-thumb:hover, a.tasting-thumb:focus-visible{
     updateToggleUI();
 
     function applyMuteState() {
-      [sfxIgnition, sfxGas, sfxBubbling].forEach(function(el) {
+      [sfxIgnition, sfxGas, sfxBubblingBase].concat(accentLayers).forEach(function(el) {
         if (el) el.muted = !soundEnabled;
       });
     }
 
-    // Called from a real user-gesture handler (click/key/touch, or the
-    // Boil Again button) so .play() is allowed to actually start.
-    function startAudioSequence() {
-      audioStarted = true;
-      applyMuteState();
-      if (sfxIgnition) { sfxIgnition.currentTime = 0; sfxIgnition.play().catch(function() {}); }
-      if (sfxGas) { sfxGas.volume = 0.35; sfxGas.currentTime = 0; sfxGas.play().catch(function() {}); }
-      if (sfxBubbling) { sfxBubbling.volume = 0.5; sfxBubbling.currentTime = 0; sfxBubbling.play().catch(function() {}); }
+    // Randomized action: pick a random accent, fade it in over the
+    // (never-stopping) base, hold it a while, fade it back out, then
+    // schedule the next one - so the boil's texture keeps shifting
+    // without the constant base ever going quiet.
+    function playNextAccent() {
+      var layer = accentLayers[Math.floor(Math.random() * accentLayers.length)];
+      layer.currentTime = 0;
+      layer.volume = 0;
+      layer.play().catch(function() {});
+      fadeVolumeTo(layer, ACCENT_VOLUME, 4000, function() {
+        var holdMs = 8000 + Math.random() * 8000;
+        accentTimer = setTimeout(function() {
+          fadeVolumeTo(layer, 0, 4000, function() {
+            layer.pause();
+            scheduleNextAccent();
+          });
+        }, holdMs);
+      });
     }
 
-    function firstInteractionAudioStart() {
-      if (audioStarted) return;
-      startAudioSequence();
+    function scheduleNextAccent() {
+      var delay = 6000 + Math.random() * 10000;
+      accentTimer = setTimeout(function() {
+        if (soundEnabled) playNextAccent();
+        else scheduleNextAccent();
+      }, delay);
+    }
+
+    // Unconditionally (re)plays everything from the top: the ignition
+    // click, the gas hiss ramping in under it, and the bubbling base
+    // ramping in as the pot appears - then kicks off the accent rotation.
+    // Used for the eager load-time attempt, the interaction fallback, and
+    // Boil Again - all three want a genuine replay of the whole sequence.
+    function restartAudioSequence() {
+      applyMuteState();
+      if (sfxIgnition) { sfxIgnition.currentTime = 0; sfxIgnition.play().catch(function() {}); }
+      if (sfxGas) {
+        sfxGas.currentTime = 0;
+        sfxGas.play().catch(function() {});
+        rampVolumeIn(sfxGas, 0.35, IGNITE_START_MS, GLOW_RAMP_MS);
+      }
+
+      if (accentTimer) { clearTimeout(accentTimer); accentTimer = null; }
+      accentLayers.forEach(function(layer) { layer.pause(); layer.currentTime = 0; layer.volume = 0; });
+
+      if (sfxBubblingBase) {
+        sfxBubblingBase.currentTime = 0;
+        sfxBubblingBase.play().catch(function() {});
+        rampVolumeIn(sfxBubblingBase, BASE_VOLUME, POT_START_MS, POT_RAMP_MS);
+      }
+      scheduleNextAccent();
+    }
+
+    // Idempotent version: no-ops if the ambient loop is already actually
+    // playing (sfxGas.paused is the one reliable signal for that, since it
+    // loops forever once genuinely started - a blocked/rejected .play()
+    // call leaves the element paused). Safe to call from multiple trigger
+    // points (eager load attempt, first-interaction fallback, sound
+    // toggle) without causing a duplicate restart or audible glitch.
+    function startAudioSequence() {
+      applyMuteState();
+      if (sfxGas && !sfxGas.paused) return;
+      restartAudioSequence();
+    }
+
+    function stopWaitingForFirstInteraction() {
       document.removeEventListener('click', firstInteractionAudioStart);
       document.removeEventListener('keydown', firstInteractionAudioStart);
       document.removeEventListener('touchstart', firstInteractionAudioStart);
+    }
+    function firstInteractionAudioStart() {
+      stopWaitingForFirstInteraction();
+      startAudioSequence();
     }
     document.addEventListener('click', firstInteractionAudioStart);
     document.addEventListener('keydown', firstInteractionAudioStart);
@@ -1403,24 +1728,28 @@ a.tasting-thumb:hover, a.tasting-thumb:focus-visible{
 
     soundToggle.addEventListener('click', function(e) {
       // Stops this click from also bubbling into the boil-skip listener
-      // (which listens on document for any click) or from re-triggering
-      // firstInteractionAudioStart redundantly - this handler already
-      // covers starting playback itself.
+      // (which listens on document for any click).
       e.stopPropagation();
       soundEnabled = !soundEnabled;
       try { localStorage.setItem('cmk-sound', soundEnabled ? '1' : '0'); } catch (err) { /* ignore */ }
       updateToggleUI();
-      if (!audioStarted) startAudioSequence();
-      else applyMuteState();
-    });
-
-    // Boil Again is already a genuine click, so this can restart the
-    // full sequence directly without waiting on the first-interaction
-    // listener above.
-    document.getElementById('boil-again').addEventListener('click', function() {
-      if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
       startAudioSequence();
     });
+
+    // Boil Again is already a genuine click/gesture, and it's replaying
+    // the whole visual sequence, so it always gets a full audio replay
+    // too - not the idempotent no-op-if-already-playing version.
+    document.getElementById('boil-again').addEventListener('click', function() {
+      if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+      restartAudioSequence();
+    });
+
+    // Eager attempt: fires immediately on load, before any interaction.
+    // Succeeds in browsers/contexts that allow it (e.g. the page was
+    // opened via a link click, or the site has enough prior media
+    // engagement) and is silently rejected everywhere else, in which case
+    // the first-interaction listener above takes over.
+    startAudioSequence();
   })();
 
   applyAmbientMotion();
@@ -1525,72 +1854,85 @@ a.tasting-thumb:hover, a.tasting-thumb:focus-visible{
     <div class="eyebrow">The Chef</div>
     <h2 id="panel-chef-title" style="font-family:'Space Mono',monospace; margin-bottom:16px;">Coding Confidential</h2>
     <p style="margin-bottom:14px; line-height:1.7;">
-      Thirty years in professional kitchens teaches you things no bootcamp curriculum will ever
-      put on a syllabus: how a burn on the forearm stops registering by hour six; or that you can
-      read a cook's whole day just by how they're gripping the knife at four in the afternoon.
-      Steady hands mean the ticket times are holding. Shaky ones, you already know somebody's
-      anniversary dinner is about to go sideways, and there's nothing you can do about it from the
-      pass. You learn that the plate has to be right before it leaves the kitchen, full stop.
-      Nobody stencilled that on a wall for morale. It's just what happens if you don't: you send
-      out something that sits in your gut the rest of the night, maybe the rest of your career.
+      Thirty years in professional kitchens teaches you things no bootcamp curriculum will ever put
+      on a syllabus. Like how a burn on the forearm stops registering by hour six, or the way you
+      can read a cook's whole day just by how they're gripping the knife at four in the afternoon.
+      Steady hands mean the ticket times are holding. Shaky ones mean somebody's anniversary dinner
+      is about to go sideways, and there's nothing you can do about it from the pass. You learn the
+      plate has to be right before it leaves the kitchen, full stop. Nobody stenciled that on a
+      wall for morale. It's just what happens if you don't: you send out something that sits in
+      your gut the rest of the night, maybe the rest of your career.
     </p>
     <p style="margin-bottom:14px; line-height:1.7;">
-      I didn't walk away from that life. Truth is it walked away from me first, and I spent a year
-      pretending otherwise.
+      I didn't walk away from that life. It walked away from me, and I spent a year pretending I
+      could still keep up.
     </p>
     <p style="margin-bottom:14px; line-height:1.7;">
-      I was too stupid, or too proud, to sit the injury down when I had the chance. Thirty years
-      running lines in kitchens that took themselves seriously, and it still didn't end with a
-      party or a write-up. It ended with me trying to keep pace on a hand that wasn't going to let
-      me anymore, and losing that argument.
+      I cut the tip of my finger off, had surgery to clean it up the next day, and was back at it
+      that afternoon, before the numbness even wore off. That's the job: you just show up, you
+      don't make it a story. A month later the real problem started. The way I was working around
+      that finger blew the ligaments in my knuckle. My grip went. Every time I tried to close my
+      hand around a pot or wring out a cloth, it bit back. I worked around it, then tried to bull
+      through it, until there wasn't anything left to do but stop.
     </p>
     <p style="margin-bottom:14px; line-height:1.7;">
-      Nobody warns you about the part that comes after: it's not starting over, it's picking up a
-      different tool with the same hands. I've been making things with my hands since I was a
-      kid — soap, food, sound, whatever was in front of me has become my art. Cooking's just the
-      one that happened to pay the rent for three decades. So when the kitchen stopped being an
-      option, I didn't lose myself. I lost one particular set of tools.
+      Thirty years on the line in serious kitchens, and it still didn't end with a party or a
+      pretty last service. No write-up, no curtain call. Just me, arguing with a hand that wasn't
+      able to seal the deal anymore, and finally cluing in that it was a fight I couldn't win.
     </p>
     <p style="margin-bottom:14px; line-height:1.7;">
-      Turned out I had others. The new one is code. A bootcamp full of kids half my age, and me,
-      trying to debug JavaScript with the same part of my brain that used to save a broken
-      hollandaise thirty seconds before service. Nobody tells you it's the same job: recipe work
-      and debugging are both the same crazy-making process: you take something raw and beat on it
-      until it stops being wrong. Eventually a stranger who owes you nothing can actually use it.
-      Mise en place is just sprint planning with more knives. You learn to hold an entire operation
-      in your skull at once and know when it's about to go bad before it does. No course teaches
-      you that. It's fifteen years of expo still running underneath everything.
+      Nobody warned me about the part that came after. In all the anguish of losing the only career
+      I've ever known, I realised it actually wasn't starting over; it was finding different tools
+      with the same artist mind behind them. I've been making things with my hands since I was a
+      kid: soap, food, stories — whatever was in front of me became the art. Cooking just happened
+      to be the one that paid the rent for three decades. So when the kitchen stopped being an
+      option, I discovered I didn't lose myself. I only lost one particular set of tools.
+    </p>
+    <p style="margin-bottom:14px; line-height:1.7;">
+      Turns out, the new tool is code.
+    </p>
+    <p style="margin-bottom:14px; line-height:1.7;">
+      A bootcamp full of kids half my age, and me, trying to fix a JavaScript file with the same
+      part of my brain that used to save a broken hollandaise thirty seconds before service. Recipe
+      work and debugging are both the same crazy-making process: you take crude raw elements and
+      beat on them until they stop being wrong, until they finally come together into something you
+      can stand behind. Something a stranger who owes you nothing can actually rave about. Mise en
+      place is just sprint planning with more knives. You learn to hold an entire operation in your
+      skull at once and know when it's about to go bad before it does. No course teaches you that.
+      It's fifteen years of expo still running underneath everything.
     </p>
     <p style="margin-bottom:14px; line-height:1.7;">
       I also do the thing most developers won't touch: I go into somebody else's mess and fix it.
-      Every kitchen I ever ran, I inherited something broken: whether it's a walk-in nobody
-      bothered to organize or a menu some line cook priced out of a dream instead of a spreadsheet.
+      Every kitchen I ever ran, I inherited something broken — whether it was a walk-in nobody
+      bothered to organize or a menu some sous-chef priced out of a dream instead of a spreadsheet.
       You don't get to complain about it. You fix it and you keep the tickets moving. Same with a
       codebase somebody walked away from half-finished. I don't care whose name is on the first
       commit. I care if the thing works when somebody needs it to.
     </p>
     <p style="margin-bottom:14px; line-height:1.7;">
-      A line cook doesn't plate a dish and disappear. You watch it go out, and you watch what
-      happens after: a clean plate coming back means it landed. Food coming back means you've got
-      maybe four minutes to fix it before the next table hits the same wall. So when I ship
-      something, be it mine, or somebody else's I've taken over, you get support after launch, the
-      same way. Not a sales pitch. I genuinely don't know another way to work. Edible was never the
-      bar in a kitchen I ran. Software that just runs and nothing else doesn't clear it either.
+      A chef doesn't create a dish and disappear. You watch it go out, and you watch what happens
+      after. A clean plate coming back means it landed. Food coming back means you've got maybe
+      four minutes to fix it before the next table hits the same wall. So when I ship
+      something — whether it's mine, or somebody else's I've taken over — you get support after
+      launch the same way. Tweaks, updates, and digital management are baked into every build.
+      Edible was never the bar in a kitchen I ran. Software that just runs and nothing else doesn't
+      clear it for me either. I genuinely don't know another way to work.
     </p>
     <p style="margin-bottom:14px; line-height:1.7;">
-      A menu tells you who a restaurant is for. Leave off the substitutions, skip the allergen
-      list, and you've decided who doesn't get to eat there, whether you meant to or not. Software
-      does the same thing with contrast, alt text, keyboard nav. Most of it isn't malice, it's just
-      nobody at the table asking who got left off the plate. I got in the habit of asking that
-      question for thirty years. I don't know how to stop, and it shows up in the accessibility
-      features baked right into every project I build.
+      A menu tells you who a restaurant is for. If you leave off substitutions or skip the allergen
+      list, you've decided who doesn't get to eat there, whether you meant to or not. Software does
+      the same thing with contrast, alt text, keyboard navigation — those choices decide who can
+      actually use what you've built. Most of the time, when people get left out, it isn't
+      deliberate; it's just nobody bothering to ask who can't get in the door. I spent thirty years
+      asking that question. I don't know how to stop, and it shows up in the accessibility features
+      baked into every project I ship.
     </p>
     <p style="line-height:1.7;">
       If you want to see what happens when the cooking and the code and everything else land on
       the same plate at once, go look at
       <a href="https://naked.chefmyklove.com" target="_blank" rel="noopener">naked.chefmyklove.com</a>.
-      Five bucks gets you the browser edition — built the way I build everything now, by hand,
-      with nothing served half-finished.
+      Five bucks gets you the browser edition — built the way I build everything now, with hands
+      that have found a new way to put something in front of you I can live with.
     </p>
   </div>
 </div>

@@ -1,0 +1,1065 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sound Lab — Stockpot Boil Mixer</title>
+<!--
+  Dev tool, not part of the public site. Loads the real assets/sfx-*.mp3
+  files through the Web Audio API (not plain <audio> tags) so each layer
+  can carry real effects - pan, pitch, a simple delay-based reverb, and a
+  lowpass "warmth" filter - on top of volume/delay/fade/hold. Dial it in
+  by ear, export the JSON, hand it back and it gets translated into the
+  real constants in index.html. The randomized accent order/gaps stay
+  code-side since a static file can't express "pick randomly," but every
+  volume/timing/effect number here is exactly what ships.
+-->
+<style>
+:root{
+  --bg: #14110D;
+  --panel: #1D1913;
+  --paper: #F7F3E9;
+  --ember: #B8452E;
+  --sage: #5C6B54;
+  --line: #34302A;
+  --muted: #9A9184;
+}
+*{ box-sizing:border-box; }
+body{
+  margin:0;
+  background: var(--bg);
+  color: var(--paper);
+  font-family:'Segoe UI', Arial, sans-serif;
+  padding: 24px 20px 80px;
+}
+h1{
+  font-size: 20px;
+  letter-spacing: 0.5px;
+  margin: 0 0 4px;
+  color: var(--ember);
+}
+.subhead{
+  color: var(--muted);
+  font-size: 13px;
+  max-width: 760px;
+  line-height: 1.5;
+  margin-bottom: 18px;
+}
+.loadstatus{
+  font-size: 12px;
+  color: var(--sage);
+  margin-bottom: 18px;
+  font-family:'Consolas','Menlo',monospace;
+}
+.transport{
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  background: rgba(20,17,13,0.96);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 14px 16px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 14px;
+  backdrop-filter: blur(4px);
+}
+button{
+  font-family: inherit;
+  font-size: 13px;
+  cursor: pointer;
+  border-radius: 6px;
+  border: 1px solid var(--line);
+  background: #262019;
+  color: var(--paper);
+  padding: 8px 14px;
+}
+button:hover{ border-color: var(--ember); }
+button:disabled{ opacity: 0.4; cursor: default; }
+button:disabled:hover{ border-color: var(--line); }
+button.primary{ background: var(--ember); border-color: var(--ember); color: #fff; font-weight: 600; }
+button.primary:hover{ opacity:0.9; }
+button.small{ padding: 3px 8px; font-size: 11px; border-radius: 5px; }
+.track-status{
+  font-family:'Consolas','Menlo',monospace;
+  font-size: 11px;
+  color: var(--sage);
+  margin-left: 10px;
+}
+.transport .now-playing{
+  font-size: 12px;
+  color: var(--paper);
+  font-weight: 600;
+}
+.transport .elapsed{
+  font-family:'Consolas','Menlo',monospace;
+  font-size: 13px;
+  color: var(--muted);
+  min-width: 70px;
+}
+.transport label{ font-size: 12px; color: var(--muted); display:flex; align-items:center; gap:6px; }
+.transport input[type=range]{ width: 100px; }
+
+.timeline-wrap{
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 10px 12px;
+  margin-bottom: 22px;
+}
+.timeline-wrap .cap{
+  font-size: 11px;
+  color: var(--muted);
+  margin-bottom: 6px;
+  display:flex;
+  justify-content: space-between;
+}
+#timeline{
+  display:block;
+  width: 100%;
+  height: 130px;
+  border-radius: 6px;
+  background: #100D09;
+}
+
+.layer{
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 14px 16px;
+  margin-bottom: 12px;
+}
+.layer-head{
+  display:flex;
+  align-items:baseline;
+  justify-content:space-between;
+  flex-wrap:wrap;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+.layer-head .swatch{
+  display:inline-block;
+  width: 9px; height: 9px;
+  border-radius: 2px;
+  margin-right: 7px;
+}
+.layer-head .name{ font-weight:600; font-size: 14px; }
+.layer-head .file{
+  font-family:'Consolas','Menlo',monospace;
+  font-size: 11px;
+  color: var(--muted);
+}
+.group-label{
+  font-size: 10px;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin: 10px 0 6px;
+}
+.controls{
+  display:grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 10px 12px;
+}
+.field{ display:flex; flex-direction:column; gap: 4px; }
+.field label{ font-size: 11px; color: var(--muted); letter-spacing:0.3px; }
+.field .row{ display:flex; align-items:center; gap:8px; }
+.field input[type=range]{ flex:1; }
+.field input[type=checkbox]{
+  width: 16px;
+  height: 16px;
+  accent-color: var(--ember);
+  cursor: pointer;
+}
+.readout{
+  font-family:'Consolas','Menlo',monospace;
+  font-size: 11px;
+  color: var(--sage);
+  min-width: 42px;
+  text-align:right;
+}
+.livebar{
+  height: 4px;
+  border-radius: 2px;
+  background: #100D09;
+  overflow:hidden;
+  margin-top: 10px;
+}
+.livebar > i{
+  display:block;
+  height:100%;
+  width:0%;
+  background: var(--ember);
+  transition: width 80ms linear;
+}
+
+.io{
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 16px;
+  margin-top: 24px;
+}
+.io h2{ font-size:14px; margin:0 0 10px; color: var(--ember); }
+.io .row{ display:flex; flex-wrap:wrap; gap:10px; margin-bottom: 10px; align-items:center; }
+textarea{
+  width:100%;
+  min-height: 220px;
+  background: #100D09;
+  color: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  font-family:'Consolas','Menlo',monospace;
+  font-size: 12px;
+  padding: 10px;
+}
+.hint{ font-size: 11px; color: var(--muted); margin-top: 4px; }
+</style>
+</head>
+<body>
+
+<h1>Sound Lab — Stockpot Boil Mixer</h1>
+<p class="subhead">
+  Each row is one real audio file from <code>assets/</code>, played through the Web Audio
+  API so it can carry real effects (pan, pitch, reverb, warmth) on top of volume/delay/
+  fade/hold. "Preview loop" plays that file alone so you can isolate exactly which clip
+  has a problem. "Play Full Mix" runs every layer together - the base bubbling loop never
+  stops once it starts; the three accents fade in at their delay, hold, then fade back out.
+  Export when it sounds right and send me the JSON.
+</p>
+<div class="loadstatus" id="loadStatus">Loading sounds…</div>
+
+<div class="transport">
+  <button class="primary" id="playMix" disabled>&#9654; Play Full Mix From Start</button>
+  <button id="stopAll">&#9632; Stop All</button>
+  <span class="elapsed" id="elapsed">0.0s</span>
+  <span class="now-playing" id="nowPlaying">Idle</span>
+  <label>Master Vol
+    <input type="range" id="masterVol" min="0" max="150" value="100">
+    <span class="readout" id="masterVolReadout">100%</span>
+  </label>
+  <button class="small" id="loadDefaults">Reset to Site Defaults</button>
+</div>
+
+<div class="timeline-wrap">
+  <div class="cap"><span>Timeline (start delay &#8594; fade &#8594; hold &#8594; fade out)</span><span id="timelineWindowLabel"></span></div>
+  <canvas id="timeline"></canvas>
+</div>
+
+<div id="layers"></div>
+
+<div class="io">
+  <h2>Export / Import</h2>
+  <div class="row">
+    <button id="exportBtn">Export Settings (JSON)</button>
+    <button id="downloadBtn">Download as File</button>
+    <button id="copyBtn">Copy to Clipboard</button>
+    <label style="font-size:12px;color:var(--muted)">
+      Load a file: <input type="file" id="importFile" accept="application/json">
+    </label>
+  </div>
+  <textarea id="jsonBox" placeholder="Exported settings appear here. You can also paste a saved config in and click Apply."></textarea>
+  <div class="row">
+    <button id="applyBtn">Apply JSON Above</button>
+    <span class="hint" id="ioStatus"></span>
+  </div>
+</div>
+
+<script>
+  // ---- Layer definitions -------------------------------------------------
+  // hasHold: every layer fades in, holds, fades out, then stops - what
+  //   used to be special-cased "always on, no hold" for gas/base is now
+  //   just a very long default Hold (holdMax lets their slider reach
+  //   minutes/hours instead of the ~30s that's plenty for an accent).
+  // canRepeat: true on every layer -> a Repeat checkbox + Gap field. Once
+  //   a cycle ends, it waits Gap ms and runs the whole cycle again,
+  //   indefinitely, until Stop All. Start Delay only applies to the first
+  //   cycle; Gap governs every cycle after that. Ignition is loop:false
+  //   (one-shot) so its "hold" is really just its own natural length -
+  //   holdMs/fadeOutMs don't apply to it, only Repeat/Gap do.
+  const LAYERS = [
+    {
+      id: 'ignition', label: 'Ignition (click)', file: 'assets/sfx-ignition.mp3',
+      loop: false, hasHold: false, canRepeat: true, color: '#B8452E',
+      defaults: { volume: 100, delayMs: 0, fadeInMs: 0, pan: 0, pitch: 0, reverb: 0, decay: 55, warmth: 20000, repeat: false, gapMs: 4000 }
+    },
+    {
+      id: 'gas', label: 'Gas Hiss (loop)', file: 'assets/sfx-gas-hiss.mp3',
+      loop: true, hasHold: true, canRepeat: true, holdMax: 3600000, color: '#8B7355',
+      defaults: { volume: 35, delayMs: 450, fadeInMs: 900, holdMs: 3600000, fadeOutMs: 1000, pan: 0, pitch: 0, reverb: 0, decay: 55, warmth: 20000, repeat: false, gapMs: 2000 }
+    },
+    {
+      id: 'base', label: 'Bubbling Base (loop)', file: 'assets/sfx-bubbling-base.mp3',
+      loop: true, hasHold: true, canRepeat: true, holdMax: 3600000, color: '#5C6B54',
+      defaults: { volume: 50, delayMs: 750, fadeInMs: 1400, holdMs: 3600000, fadeOutMs: 1000, pan: 0, pitch: 0, reverb: 0, decay: 55, warmth: 20000, repeat: false, gapMs: 2000 }
+    },
+    {
+      id: 'rice', label: 'Accent: Rice (loop, fades in/out)', file: 'assets/sfx-bubbling-rice.mp3',
+      loop: true, hasHold: true, canRepeat: true, color: '#C8A96A',
+      defaults: { volume: 32, delayMs: 12000, fadeInMs: 4000, holdMs: 12000, fadeOutMs: 4000, pan: -20, pitch: 0, reverb: 0, decay: 55, warmth: 20000, repeat: true, gapMs: 8000 }
+    },
+    {
+      id: 'beans', label: 'Accent: Beans (loop, fades in/out)', file: 'assets/sfx-bubbling-beans.mp3',
+      loop: true, hasHold: true, canRepeat: true, color: '#A0684C',
+      defaults: { volume: 32, delayMs: 32000, fadeInMs: 4000, holdMs: 12000, fadeOutMs: 4000, pan: 20, pitch: 0, reverb: 0, decay: 55, warmth: 20000, repeat: true, gapMs: 8000 }
+    },
+    {
+      id: 'water', label: 'Accent: Water (loop, fades in/out)', file: 'assets/sfx-bubbling-water.mp3',
+      loop: true, hasHold: true, canRepeat: true, color: '#6E8FA3',
+      defaults: { volume: 32, delayMs: 52000, fadeInMs: 4000, holdMs: 12000, fadeOutMs: 4000, pan: 0, pitch: 0, reverb: 8, decay: 55, warmth: 20000, repeat: true, gapMs: 8000 }
+    }
+  ];
+
+  // ---- Web Audio setup -----------------------------------------------------
+  let ctx = null;
+  let masterGain = null;
+  function audioCtx() {
+    if (!ctx) {
+      ctx = new (window.AudioContext || window.webkitAudioContext)();
+      masterGain = ctx.createGain();
+      masterGain.gain.value = parseFloat(document.getElementById('masterVol').value) / 100;
+      masterGain.connect(ctx.destination);
+    }
+    if (ctx.state === 'suspended') ctx.resume();
+    return ctx;
+  }
+
+  const els = {};        // id -> control/UI refs + runtime playback state
+  const buffers = {};    // id -> decoded AudioBuffer
+  let mixTimers = [];    // setTimeout handles from a running full-mix pass
+  let mixStartTime = null;
+  let soloActiveId = null;
+
+  // ---- Build one clip's effects graph and start it -------------------------
+  // Mirrors the naked.chefmyklove.com Composer's approach: a fresh
+  // AudioBufferSourceNode + GainNode + BiquadFilter (+ a simple delay-based
+  // reverb send when reverb > 0) + StereoPannerNode per play. Volume fades
+  // ride on the GainNode's own native automation (setValueAtTime +
+  // linearRampToValueAtTime) rather than a JS setInterval loop, so they're
+  // sample-accurate and don't drift under tab-throttling.
+  function startLayer(e, params, startAt) {
+    const c = audioCtx();
+    const buffer = buffers[e.layer.id];
+    if (!buffer) return null;
+
+    const rate = Math.pow(2, params.pitch / 12);
+    const src = c.createBufferSource();
+    src.buffer = buffer;
+    src.playbackRate.value = rate;
+    src.loop = e.layer.loop || soloActiveId === e.layer.id;
+
+    const gain = c.createGain();
+    gain.gain.setValueAtTime(0, startAt);
+
+    const filter = c.createBiquadFilter();
+    filter.type = 'lowpass';
+    filter.frequency.value = params.warmth;
+    filter.Q.value = 0.7;
+
+    const revAmt = params.reverb / 100;
+    if (revAmt > 0.01) {
+      const decV = Math.min(params.decay / 100, 0.92);
+      const delT = revAmt * 0.32;
+      const del = c.createDelay(2.5);
+      const fbg = c.createGain();
+      const dryG = c.createGain();
+      const wetG = c.createGain();
+      del.delayTime.value = delT;
+      fbg.gain.value = decV;
+      dryG.gain.value = 1 - revAmt * 0.45;
+      wetG.gain.value = revAmt * 0.55;
+      src.connect(filter);
+      filter.connect(dryG); filter.connect(del);
+      del.connect(fbg); fbg.connect(del); del.connect(wetG);
+      dryG.connect(gain); wetG.connect(gain);
+    } else {
+      src.connect(filter);
+      filter.connect(gain);
+    }
+
+    const panV = params.pan / 100;
+    if (Math.abs(panV) > 0.01) {
+      const panner = c.createStereoPanner();
+      panner.pan.value = panV;
+      gain.connect(panner);
+      panner.connect(masterGain);
+    } else {
+      gain.connect(masterGain);
+    }
+
+    const nodeObj = { source: src, gain: gain, startedAt: startAt, buffer: buffer, rate: rate };
+    // Non-looping clips (ignition) end on their own without anyone calling
+    // stop() - without this, the ticker would keep treating them as
+    // "playing" forever (frozen at 0:00 left) since e.isPlaying/e.node
+    // never get cleared. Guarded by identity so an explicit stop()
+    // elsewhere (which already nulls e.node) doesn't get double-handled
+    // if onended fires after the layer's already moved on to a new node.
+    src.onended = function() {
+      if (e.node === nodeObj) {
+        e.isPlaying = false;
+        e.node = null;
+        e.bar.style.width = '0%';
+        e.statusEl.textContent = '';
+      }
+    };
+    src.start(startAt);
+    return nodeObj;
+  }
+
+  function rampTo(gainNode, targetVol, fromTime, durationMs) {
+    const c = audioCtx();
+    const now = Math.max(fromTime, c.currentTime);
+    gainNode.gain.cancelScheduledValues(now);
+    gainNode.gain.setValueAtTime(gainNode.gain.value, now);
+    if (durationMs <= 0) {
+      gainNode.gain.setValueAtTime(targetVol, now);
+    } else {
+      gainNode.gain.linearRampToValueAtTime(targetVol, now + durationMs / 1000);
+    }
+  }
+
+  // ---- Layer UI --------------------------------------------------------
+  const layersRoot = document.getElementById('layers');
+
+  LAYERS.forEach(function(layer) {
+    const wrap = document.createElement('div');
+    wrap.className = 'layer';
+
+    const head = document.createElement('div');
+    head.className = 'layer-head';
+    head.innerHTML =
+      '<span><span class="swatch" style="background:' + layer.color + '"></span>' +
+      '<span class="name">' + layer.label + '</span></span>' +
+      '<span class="file" id="' + layer.id + '-dur">' + layer.file + '</span>';
+    wrap.appendChild(head);
+
+    const controls = document.createElement('div');
+    controls.className = 'controls';
+
+    function makeField(labelText, key, min, max, step, value, unit, fmt) {
+      const field = document.createElement('div');
+      field.className = 'field';
+      const id = layer.id + '-' + key;
+      field.innerHTML =
+        '<label for="' + id + '">' + labelText + '</label>' +
+        '<div class="row">' +
+          '<input type="range" id="' + id + '" min="' + min + '" max="' + max + '" step="' + step + '" value="' + value + '">' +
+          '<span class="readout" id="' + id + '-out">' + (fmt ? fmt(value) : value + unit) + '</span>' +
+        '</div>';
+      controls.appendChild(field);
+      const input = field.querySelector('input');
+      const out = field.querySelector('.readout');
+      // Stashed on the element so setInputValue() (used by Reset/Import)
+      // can reuse the same formatting without every call site needing to
+      // know which fields have a custom formatter.
+      if (fmt) input._fmt = fmt;
+      input.addEventListener('input', function() {
+        out.textContent = fmt ? fmt(parseFloat(input.value)) : input.value + unit;
+        drawTimeline();
+      });
+      return input;
+    }
+
+    function makeCheckboxField(labelText, key, checked) {
+      const field = document.createElement('div');
+      field.className = 'field';
+      const id = layer.id + '-' + key;
+      field.innerHTML =
+        '<label for="' + id + '">' + labelText + '</label>' +
+        '<div class="row">' +
+          '<input type="checkbox" id="' + id + '"' + (checked ? ' checked' : '') + '>' +
+        '</div>';
+      controls.appendChild(field);
+      const input = field.querySelector('input');
+      input.addEventListener('change', function() { drawTimeline(); });
+      return input;
+    }
+
+    const volumeInput = makeField('Volume', 'volume', 0, 150, 1, layer.defaults.volume, '%');
+    const delayInput = makeField('Start Delay', 'delay', 0, 90000, 50, layer.defaults.delayMs, 'ms');
+    const fadeInInput = makeField('Fade In', 'fadeIn', 0, 8000, 100, layer.defaults.fadeInMs, 'ms');
+    let holdInput = null, fadeOutInput = null;
+    if (layer.hasHold) {
+      // Layers with holdMax (gas/base) can hold for up to an hour so they
+      // still read as "always on" by default - raw ms is unreadable at
+      // that scale, so format as m/s once past 60s instead.
+      const holdMax = layer.holdMax || 30000;
+      const holdStep = layer.holdMax ? 5000 : 500;
+      holdInput = makeField('Hold', 'hold', 0, holdMax, holdStep, layer.defaults.holdMs, 'ms',
+        layer.holdMax ? formatHoldMs : null);
+      fadeOutInput = makeField('Fade Out', 'fadeOut', 0, 8000, 100, layer.defaults.fadeOutMs, 'ms');
+    }
+    let repeatInput = null, gapInput = null;
+    if (layer.canRepeat) {
+      repeatInput = makeCheckboxField('Repeat', 'repeat', layer.defaults.repeat);
+      gapInput = makeField('Gap (between repeats)', 'gap', 0, 30000, 500, layer.defaults.gapMs, 'ms');
+    }
+    wrap.appendChild(controls);
+
+    const fxLabel = document.createElement('div');
+    fxLabel.className = 'group-label';
+    fxLabel.textContent = 'Effects';
+    wrap.appendChild(fxLabel);
+
+    const fxControls = document.createElement('div');
+    fxControls.className = 'controls';
+    function makeFxField(labelText, key, min, max, step, value, unit) {
+      const field = document.createElement('div');
+      field.className = 'field';
+      const id = layer.id + '-' + key;
+      field.innerHTML =
+        '<label for="' + id + '">' + labelText + '</label>' +
+        '<div class="row">' +
+          '<input type="range" id="' + id + '" min="' + min + '" max="' + max + '" step="' + step + '" value="' + value + '">' +
+          '<span class="readout" id="' + id + '-out">' + value + unit + '</span>' +
+        '</div>';
+      fxControls.appendChild(field);
+      const input = field.querySelector('input');
+      const out = field.querySelector('.readout');
+      input.addEventListener('input', function() {
+        out.textContent = input.value + unit;
+      });
+      return input;
+    }
+
+    const panInput = makeFxField('Pan', 'pan', -100, 100, 1, layer.defaults.pan, '');
+    const pitchInput = makeFxField('Pitch', 'pitch', -12, 12, 0.5, layer.defaults.pitch, 'st');
+    const reverbInput = makeFxField('Reverb', 'reverb', 0, 100, 1, layer.defaults.reverb, '%');
+    const decayInput = makeFxField('Decay', 'decay', 0, 93, 1, layer.defaults.decay, '%');
+    const warmthInput = makeFxField('Warmth', 'warmth', 200, 20000, 100, layer.defaults.warmth, 'Hz');
+    wrap.appendChild(fxControls);
+
+    const bar = document.createElement('div');
+    bar.className = 'livebar';
+    bar.innerHTML = '<i></i>';
+    wrap.appendChild(bar);
+
+    const soloRow = document.createElement('div');
+    soloRow.style.marginTop = '10px';
+    const soloBtn = document.createElement('button');
+    soloBtn.className = 'small';
+    soloBtn.textContent = '▶ Preview loop alone';
+    soloBtn.disabled = true;
+    soloRow.appendChild(soloBtn);
+    const statusEl = document.createElement('span');
+    statusEl.className = 'track-status';
+    soloRow.appendChild(statusEl);
+    wrap.appendChild(soloRow);
+
+    layersRoot.appendChild(wrap);
+
+    els[layer.id] = {
+      layer: layer,
+      volumeInput, delayInput, fadeInInput, holdInput, fadeOutInput,
+      panInput, pitchInput, reverbInput, decayInput, warmthInput,
+      repeatInput, gapInput,
+      bar: bar.querySelector('i'),
+      soloBtn, statusEl,
+      // runtime playback state (populated by startLayer/stopLayer). Cycle
+      // timers live in the shared mixTimers array, not per-layer here -
+      // see runLayerCycle.
+      node: null, isPlaying: false
+    };
+
+    soloBtn.addEventListener('click', function() {
+      if (soloActiveId === layer.id) { stopAll(); return; }
+      stopAll();
+      soloActiveId = layer.id;
+      soloBtn.textContent = '■ Stop preview';
+      const e = els[layer.id];
+      const c = audioCtx();
+      const params = readParams(e);
+      const node = startLayer(e, params, c.currentTime);
+      if (node) {
+        rampTo(node.gain, (params.volume / 100), c.currentTime, 200);
+        e.node = node;
+        e.isPlaying = true;
+      }
+    });
+  });
+
+  function readParams(e) {
+    return {
+      volume: parseFloat(e.volumeInput.value),
+      delayMs: parseFloat(e.delayInput.value),
+      fadeInMs: parseFloat(e.fadeInInput.value),
+      holdMs: e.holdInput ? parseFloat(e.holdInput.value) : 0,
+      fadeOutMs: e.fadeOutInput ? parseFloat(e.fadeOutInput.value) : 0,
+      pan: parseFloat(e.panInput.value),
+      pitch: parseFloat(e.pitchInput.value),
+      reverb: parseFloat(e.reverbInput.value),
+      decay: parseFloat(e.decayInput.value),
+      warmth: parseFloat(e.warmthInput.value),
+      repeat: e.repeatInput ? e.repeatInput.checked : false,
+      gapMs: e.gapInput ? parseFloat(e.gapInput.value) : 0
+    };
+  }
+
+  // ---- Loading ---------------------------------------------------------
+  const loadStatusEl = document.getElementById('loadStatus');
+  let loadedCount = 0;
+  Promise.all(LAYERS.map(function(layer) {
+    return fetch(layer.file)
+      .then(function(r) { return r.arrayBuffer(); })
+      .then(function(ab) { return audioCtx().decodeAudioData(ab); })
+      .then(function(buf) {
+        buffers[layer.id] = buf;
+        loadedCount++;
+        loadStatusEl.textContent = 'Loading sounds… ' + loadedCount + ' / ' + LAYERS.length;
+        document.getElementById(layer.id + '-dur').textContent = layer.file + '  (' + buf.duration.toFixed(1) + 's)';
+        els[layer.id].soloBtn.disabled = false;
+      })
+      .catch(function(err) {
+        loadStatusEl.textContent = 'Error loading ' + layer.file + ': ' + err.message;
+      });
+  })).then(function() {
+    loadStatusEl.textContent = LAYERS.length + ' sounds ready.';
+    document.getElementById('playMix').disabled = false;
+    drawTimeline();
+  });
+
+  // ---- Master transport --------------------------------------------------
+  const masterVolInput = document.getElementById('masterVol');
+  const masterVolOut = document.getElementById('masterVolReadout');
+  masterVolInput.addEventListener('input', function() {
+    masterVolOut.textContent = masterVolInput.value + '%';
+    if (masterGain) masterGain.gain.value = parseFloat(masterVolInput.value) / 100;
+  });
+
+  function stopLayer(e) {
+    if (e.node) {
+      try { e.node.source.stop(0); } catch (err) { /* already stopped */ }
+      e.node = null;
+    }
+    e.isPlaying = false;
+    e.bar.style.width = '0%';
+    e.statusEl.textContent = '';
+  }
+
+  function stopAll() {
+    mixTimers.forEach(function(t) { clearTimeout(t); });
+    mixTimers = [];
+    mixStartTime = null;
+    document.getElementById('elapsed').textContent = '0.0s';
+    Object.keys(els).forEach(function(id) { stopLayer(els[id]); });
+    if (soloActiveId) {
+      els[soloActiveId].soloBtn.textContent = '▶ Preview loop alone';
+      soloActiveId = null;
+    }
+    document.getElementById('nowPlaying').textContent = 'Idle';
+  }
+
+  // How far ahead of a cycle's actual end we prepare the next one. JS
+  // timers aren't sample-accurate - a setTimeout can fire a few ms (or,
+  // on a throttled background tab, much more) later than asked. Scheduling
+  // the next source's start() call this far in advance of when it's
+  // actually needed means that jitter eats into the lead time, not into
+  // the audio itself, so a 0ms Gap / 0ms Fade Out genuinely lands
+  // back-to-back on the sample instead of leaving an audible hole.
+  const CYCLE_LOOKAHEAD_MS = 200;
+
+  // Runs one play-cycle for a layer: start, fade in, and (for hasHold
+  // layers) hold then fade out then stop - all scheduled up front against
+  // the AudioContext's own clock (setValueAtTime/linearRampToValueAtTime/
+  // stop(when)), not triggered step-by-step from nested setTimeouts. That's
+  // what makes 0ms Gap + 0ms Fade Out actually gapless: the next cycle's
+  // start() time is computed to equal exactly where this one's stop() time
+  // lands, and both are locked to sample-accurate audio-clock timestamps
+  // regardless of when the surrounding JS happens to run.
+  //
+  // Params are re-read fresh at the start of every cycle, so slider tweaks
+  // mid-playback apply to the next repeat without needing a restart.
+  // `startAt` is optional (defaults to "now") - repeats pass in the
+  // precomputed timestamp for where the previous cycle's audio actually
+  // ends, not "whenever this function happens to run."
+  function runLayerCycle(id, startAt) {
+    const e = els[id];
+    const layer = e.layer;
+    const params = readParams(e);
+    const targetVol = params.volume / 100;
+    const c = audioCtx();
+    if (startAt == null || startAt < c.currentTime) startAt = c.currentTime;
+
+    const node = startLayer(e, params, startAt);
+    if (!node) return;
+    e.node = node;
+    e.isPlaying = true;
+
+    if (params.fadeInMs > 0) {
+      node.gain.gain.linearRampToValueAtTime(targetVol, startAt + params.fadeInMs / 1000);
+    } else {
+      node.gain.gain.setValueAtTime(targetVol, startAt);
+    }
+
+    let cycleEndAt; // AudioContext-clock time this cycle's sound actually stops
+    if (layer.hasHold) {
+      const holdEndAt = startAt + (params.fadeInMs + params.holdMs) / 1000;
+      cycleEndAt = holdEndAt + params.fadeOutMs / 1000;
+      if (params.fadeOutMs > 0) {
+        node.gain.gain.setValueAtTime(targetVol, holdEndAt);
+        node.gain.gain.linearRampToValueAtTime(0, cycleEndAt);
+      }
+      node.source.stop(cycleEndAt);
+    } else {
+      cycleEndAt = startAt + node.buffer.duration / node.rate; // one-shot's natural end (ignition)
+    }
+
+    if (layer.canRepeat && params.repeat) {
+      const nextStartAt = cycleEndAt + params.gapMs / 1000;
+      const msUntilPrepare = Math.max(0, (cycleEndAt - c.currentTime) * 1000 - CYCLE_LOOKAHEAD_MS);
+      const prepTimer = setTimeout(function() { runLayerCycle(id, nextStartAt); }, msUntilPrepare);
+      mixTimers.push(prepTimer);
+    }
+  }
+
+  function playFullMix() {
+    stopAll();
+    mixStartTime = performance.now();
+    Object.keys(els).forEach(function(id) {
+      const delayMs = parseFloat(els[id].delayInput.value);
+      const startTimer = setTimeout(function() { runLayerCycle(id); }, delayMs);
+      mixTimers.push(startTimer);
+    });
+  }
+
+  document.getElementById('playMix').addEventListener('click', playFullMix);
+  document.getElementById('stopAll').addEventListener('click', stopAll);
+
+  // ---- Live status ticker -------------------------------------------------
+  // Web Audio doesn't expose a per-source "currentTime" the way <audio>
+  // does, so position is derived from the shared AudioContext clock minus
+  // each node's recorded start time, wrapped by the buffer's own duration
+  // (which is exactly "time left in this loop pass" for looping layers).
+  // Used for Hold fields on layers with holdMax (gas/base can hold up to
+  // an hour) - plain ms would be unreadable at that scale.
+  function formatHoldMs(ms) {
+    if (ms >= 60000) {
+      const m = Math.floor(ms / 60000);
+      const s = Math.round((ms % 60000) / 1000);
+      return m + 'm' + (s ? ' ' + s + 's' : '');
+    }
+    return (ms / 1000).toFixed(1) + 's';
+  }
+
+  function formatTime(seconds) {
+    if (!isFinite(seconds) || seconds < 0) seconds = 0;
+    const m = Math.floor(seconds / 60);
+    const s = Math.floor(seconds % 60);
+    return m + ':' + (s < 10 ? '0' : '') + s;
+  }
+
+  setInterval(function() {
+    if (!ctx) return;
+    if (mixStartTime !== null) {
+      const elapsedMs = performance.now() - mixStartTime;
+      document.getElementById('elapsed').textContent = (elapsedMs / 1000).toFixed(1) + 's';
+    }
+
+    const playingLabels = [];
+    Object.keys(els).forEach(function(id) {
+      const e = els[id];
+      if (e.isPlaying && e.node) {
+        const master = parseFloat(masterVolInput.value) / 100;
+        const targetish = e.node.gain.gain.value;
+        e.bar.style.width = Math.round((targetish * 100) / Math.max(master, 0.0001)) + '%';
+
+        // Clamped to 0: with gapless repeats the *next* node is created
+        // (and e.node reassigned to it) up to CYCLE_LOOKAHEAD_MS before it
+        // actually starts sounding, so ctx.currentTime can briefly be
+        // earlier than its startedAt - without the clamp that shows as a
+        // negative time for a moment instead of just "hasn't begun yet."
+        const pos = Math.max(0, (ctx.currentTime - e.node.startedAt) * e.node.rate);
+        const dur = e.node.buffer.duration;
+        const posWrapped = e.node.source.loop ? (pos % dur) : Math.min(pos, dur);
+        const remaining = Math.max(0, dur - posWrapped);
+        e.statusEl.textContent =
+          formatTime(posWrapped) + ' / ' + formatTime(dur) + '  ·  ' + formatTime(remaining) + ' left';
+        playingLabels.push(e.layer.label);
+      }
+    });
+
+    const nowPlayingEl = document.getElementById('nowPlaying');
+    if (soloActiveId) {
+      nowPlayingEl.textContent = 'Previewing: ' + els[soloActiveId].layer.label;
+    } else if (playingLabels.length) {
+      nowPlayingEl.textContent = 'Playing: ' + playingLabels.join(', ');
+    } else {
+      nowPlayingEl.textContent = 'Idle';
+    }
+
+    // Full redraw (not just drawTimelinePlayhead) - the playhead draw
+    // doesn't clear the canvas on its own, so calling it alone every tick
+    // would leave a trail of lines instead of one moving line.
+    if (mixStartTime !== null) drawTimeline();
+  }, 150);
+
+  // ---- Timeline canvas -----------------------------------------------------
+  const timelineCanvas = document.getElementById('timeline');
+
+  // A layer with holdMax (gas/base) can hold for up to an hour - using
+  // that real value here would blow the window out to over an hour and
+  // squeeze every other layer into a sliver near x=0. Cap those layers'
+  // contribution to a representative width instead; the "continues"
+  // fade-to-edge treatment in drawTimeline() communicates the rest.
+  const WINDOW_HOLD_CAP_MS = 8000;
+
+  function timelineWindowMs() {
+    let maxEnd = 6000;
+    LAYERS.forEach(function(layer) {
+      const e = els[layer.id];
+      const delay = parseFloat(e.delayInput.value);
+      const fadeIn = parseFloat(e.fadeInInput.value);
+      let end;
+      if (layer.hasHold) {
+        const hold = layer.holdMax
+          ? Math.min(parseFloat(e.holdInput.value), WINDOW_HOLD_CAP_MS)
+          : parseFloat(e.holdInput.value);
+        end = delay + fadeIn + hold + parseFloat(e.fadeOutInput.value);
+      } else {
+        const dur = (buffers[layer.id] ? buffers[layer.id].duration * 1000 : 4000);
+        end = delay + fadeIn + Math.min(dur, 6000);
+      }
+      maxEnd = Math.max(maxEnd, end);
+    });
+    return maxEnd + 2000;
+  }
+
+  function drawTimeline() {
+    const W = timelineCanvas.clientWidth, H = timelineCanvas.clientHeight;
+    if (!W || !H) return;
+    timelineCanvas.width = W; timelineCanvas.height = H;
+    const g = timelineCanvas.getContext('2d');
+    const windowMs = timelineWindowMs();
+    document.getElementById('timelineWindowLabel').textContent = (windowMs / 1000).toFixed(0) + 's window';
+
+    g.clearRect(0, 0, W, H);
+
+    // gridlines every 10s
+    g.strokeStyle = 'rgba(200,169,106,0.10)';
+    g.fillStyle = 'rgba(200,169,106,0.35)';
+    g.font = '9px Consolas, monospace';
+    g.lineWidth = 1;
+    for (let t = 0; t * 1000 <= windowMs; t += 10) {
+      const x = (t * 1000 / windowMs) * W;
+      g.beginPath(); g.moveTo(x, 0); g.lineTo(x, H); g.stroke();
+      if (t > 0) g.fillText(t + 's', x + 2, H - 3);
+    }
+
+    const rowH = H / LAYERS.length;
+    LAYERS.forEach(function(layer, i) {
+      const e = els[layer.id];
+      const delay = parseFloat(e.delayInput.value);
+      const fadeIn = parseFloat(e.fadeInInput.value);
+      const y = i * rowH + 3;
+      const barH = rowH - 6;
+      const x0 = (delay / windowMs) * W;
+
+      let widthMs, continues = false;
+      if (layer.hasHold) {
+        const fullHold = parseFloat(e.holdInput.value);
+        if (layer.holdMax && fullHold > WINDOW_HOLD_CAP_MS) {
+          widthMs = fadeIn + WINDOW_HOLD_CAP_MS;
+          continues = true;
+        } else {
+          widthMs = fadeIn + fullHold + parseFloat(e.fadeOutInput.value);
+        }
+      } else {
+        const dur = (buffers[layer.id] ? buffers[layer.id].duration * 1000 : 4000);
+        widthMs = fadeIn + Math.min(dur, 6000);
+        continues = layer.loop;
+      }
+      const wPx = Math.max((widthMs / windowMs) * W, 3);
+
+      g.fillStyle = layer.color + (continues ? '99' : 'CC');
+      g.fillRect(x0, y, Math.min(wPx, W - x0), barH);
+
+      if (continues && x0 + wPx < W) {
+        const grad = g.createLinearGradient(x0 + wPx - 24, 0, x0 + wPx, 0);
+        grad.addColorStop(0, layer.color + '99');
+        grad.addColorStop(1, layer.color + '15');
+        g.fillStyle = grad;
+        g.fillRect(x0 + wPx - 24, y, 24, barH);
+        g.fillStyle = layer.color + '99';
+        g.fillRect(x0 + wPx, y, W - (x0 + wPx), barH);
+      }
+
+      // Repeat indicator: a single faint "echo" block showing where the
+      // cycle picks back up after its Gap, plus a ↻ mark on the first
+      // block - communicates "this repeats" without drawing every future
+      // cycle out to the edge of the window.
+      if (layer.canRepeat && e.repeatInput.checked) {
+        const gapMs = parseFloat(e.gapInput.value);
+        const echoX0 = x0 + wPx + (gapMs / windowMs) * W;
+        if (echoX0 < W) {
+          g.fillStyle = layer.color + '4D';
+          g.fillRect(echoX0, y, Math.min(wPx, W - echoX0), barH);
+        }
+        g.fillStyle = 'rgba(255,210,110,0.9)';
+        g.font = '9px Consolas, monospace';
+        g.fillText('↻', Math.min(x0 + wPx + 2, W - 10), y + barH / 2 + 3);
+      }
+
+      if (wPx > 34) {
+        g.fillStyle = 'rgba(20,17,13,0.9)';
+        g.font = '9px Consolas, monospace';
+        g.fillText(layer.label.split(' ')[0], x0 + 4, y + barH / 2 + 3);
+      }
+    });
+
+    drawTimelinePlayhead();
+  }
+
+  function drawTimelinePlayhead() {
+    const W = timelineCanvas.clientWidth, H = timelineCanvas.clientHeight;
+    if (!W || !H || mixStartTime === null) return;
+    const g = timelineCanvas.getContext('2d');
+    const windowMs = timelineWindowMs();
+    const elapsedMs = performance.now() - mixStartTime;
+    if (elapsedMs > windowMs) return;
+    const x = (elapsedMs / windowMs) * W;
+    g.save();
+    g.strokeStyle = 'rgba(255,210,110,0.85)';
+    g.lineWidth = 1.5;
+    g.beginPath(); g.moveTo(x, 0); g.lineTo(x, H); g.stroke();
+    g.restore();
+  }
+
+  window.addEventListener('resize', drawTimeline);
+
+  // ---- Reset to current site defaults -------------------------------------
+  function setInputValue(input, value, unit) {
+    input.value = value;
+    const out = document.getElementById(input.id + '-out');
+    if (out) out.textContent = input._fmt ? input._fmt(value) : value + unit;
+  }
+  function loadDefaults() {
+    LAYERS.forEach(function(layer) {
+      const e = els[layer.id];
+      setInputValue(e.volumeInput, layer.defaults.volume, '%');
+      setInputValue(e.delayInput, layer.defaults.delayMs, 'ms');
+      setInputValue(e.fadeInInput, layer.defaults.fadeInMs, 'ms');
+      if (layer.hasHold) {
+        setInputValue(e.holdInput, layer.defaults.holdMs, 'ms');
+        setInputValue(e.fadeOutInput, layer.defaults.fadeOutMs, 'ms');
+      }
+      setInputValue(e.panInput, layer.defaults.pan, '');
+      setInputValue(e.pitchInput, layer.defaults.pitch, 'st');
+      setInputValue(e.reverbInput, layer.defaults.reverb, '%');
+      setInputValue(e.decayInput, layer.defaults.decay, '%');
+      setInputValue(e.warmthInput, layer.defaults.warmth, 'Hz');
+      if (layer.canRepeat) {
+        e.repeatInput.checked = layer.defaults.repeat;
+        setInputValue(e.gapInput, layer.defaults.gapMs, 'ms');
+      }
+    });
+    drawTimeline();
+  }
+  document.getElementById('loadDefaults').addEventListener('click', loadDefaults);
+
+  // ---- Export / Import -----------------------------------------------------
+  function getSettings() {
+    const out = { masterVolume: parseFloat(masterVolInput.value), layers: {} };
+    LAYERS.forEach(function(layer) {
+      const e = els[layer.id];
+      const entry = readParams(e);
+      if (!layer.hasHold) { delete entry.holdMs; delete entry.fadeOutMs; }
+      if (!layer.canRepeat) { delete entry.repeat; delete entry.gapMs; }
+      out.layers[layer.id] = entry;
+    });
+    return out;
+  }
+
+  function applySettings(json) {
+    if (json.masterVolume != null) {
+      masterVolInput.value = json.masterVolume;
+      masterVolOut.textContent = json.masterVolume + '%';
+      if (masterGain) masterGain.gain.value = json.masterVolume / 100;
+    }
+    LAYERS.forEach(function(layer) {
+      const saved = json.layers && json.layers[layer.id];
+      if (!saved) return;
+      const e = els[layer.id];
+      if (saved.volume != null) setInputValue(e.volumeInput, saved.volume, '%');
+      if (saved.delayMs != null) setInputValue(e.delayInput, saved.delayMs, 'ms');
+      if (saved.fadeInMs != null) setInputValue(e.fadeInInput, saved.fadeInMs, 'ms');
+      if (layer.hasHold) {
+        if (saved.holdMs != null) setInputValue(e.holdInput, saved.holdMs, 'ms');
+        if (saved.fadeOutMs != null) setInputValue(e.fadeOutInput, saved.fadeOutMs, 'ms');
+      }
+      if (saved.pan != null) setInputValue(e.panInput, saved.pan, '');
+      if (saved.pitch != null) setInputValue(e.pitchInput, saved.pitch, 'st');
+      if (saved.reverb != null) setInputValue(e.reverbInput, saved.reverb, '%');
+      if (saved.decay != null) setInputValue(e.decayInput, saved.decay, '%');
+      if (saved.warmth != null) setInputValue(e.warmthInput, saved.warmth, 'Hz');
+      if (layer.canRepeat) {
+        if (saved.repeat != null) e.repeatInput.checked = saved.repeat;
+        if (saved.gapMs != null) setInputValue(e.gapInput, saved.gapMs, 'ms');
+      }
+    });
+    drawTimeline();
+  }
+
+  const jsonBox = document.getElementById('jsonBox');
+  const ioStatus = document.getElementById('ioStatus');
+
+  document.getElementById('exportBtn').addEventListener('click', function() {
+    jsonBox.value = JSON.stringify(getSettings(), null, 2);
+    ioStatus.textContent = 'Exported current settings below.';
+  });
+
+  document.getElementById('downloadBtn').addEventListener('click', function() {
+    if (!jsonBox.value.trim()) jsonBox.value = JSON.stringify(getSettings(), null, 2);
+    const blob = new Blob([jsonBox.value], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'sound-lab-config.json';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    ioStatus.textContent = 'Downloaded sound-lab-config.json';
+  });
+
+  document.getElementById('copyBtn').addEventListener('click', function() {
+    if (!jsonBox.value.trim()) jsonBox.value = JSON.stringify(getSettings(), null, 2);
+    navigator.clipboard.writeText(jsonBox.value).then(function() {
+      ioStatus.textContent = 'Copied to clipboard.';
+    }).catch(function() {
+      ioStatus.textContent = 'Could not copy automatically - select and copy manually.';
+    });
+  });
+
+  document.getElementById('applyBtn').addEventListener('click', function() {
+    try {
+      const json = JSON.parse(jsonBox.value);
+      applySettings(json);
+      ioStatus.textContent = 'Applied settings from JSON above.';
+    } catch (err) {
+      ioStatus.textContent = 'Could not parse JSON: ' + err.message;
+    }
+  });
+
+  document.getElementById('importFile').addEventListener('change', function(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = function() {
+      jsonBox.value = reader.result;
+      try {
+        applySettings(JSON.parse(reader.result));
+        ioStatus.textContent = 'Loaded and applied ' + file.name;
+      } catch (err) {
+        ioStatus.textContent = 'Loaded ' + file.name + ' but could not parse it: ' + err.message;
+      }
+    };
+    reader.readAsText(file);
+  });
+
+  drawTimeline();
+</script>
+
+</body>
+</html>

@@ -86,11 +86,19 @@
       "Bash('C:\\\\Users\\\\micha/.claude/skills/gstack/browse/dist/browse' screenshot *)",
       "Bash('C:\\\\Users\\\\micha/.claude/skills/gstack/browse/dist/browse' snapshot *)",
       "Bash('C:\\\\Users\\\\micha/.claude/skills/gstack/browse/dist/browse' hover *)",
-      "Bash(cat CNAME; echo \"---\"; find /d/Desktop -maxdepth 2 -iname \"*selina*\" 2>/dev/null)"
+      "Bash(cat CNAME; echo \"---\"; find /d/Desktop -maxdepth 2 -iname \"*selina*\" 2>/dev/null)",
+      "Bash(/c/Users/micha/.claude/skills/gstack/browse/dist/browse hover *)",
+      "Bash(echo \"close-hover: $?\")",
+      "Bash(echo \"thumb-hover: $?\")",
+      "Bash(echo \"exit=$?\")",
+      "Bash(rm -f /c/Users/micha/AppData/Local/Temp/preview3.png /c/Users/micha/AppData/Local/Temp/preview4.png /c/Users/micha/AppData/Local/Temp/preview5.png)",
+      "Bash(ffmpeg -version)",
+      "Bash(curl -s -o /dev/null -w \"existing server: %{http_code}\\\\n\" http://localhost:8000/index.html)"
     ],
     "additionalDirectories": [
       "d:\\Desktop\\software solutions",
-      "D:\\Desktop\\software solutions"
+      "D:\\Desktop\\software solutions",
+      "C:\\Users\\micha\\AppData\\Local\\Temp"
     ]
   }
 }
