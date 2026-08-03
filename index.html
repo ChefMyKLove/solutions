@@ -225,14 +225,16 @@ body{
   background: rgba(247,243,233,0.26);
 }
 .bubble.bubble-brand{
-  /* 15% bigger again on top of the previous 30% bump - was
-     clamp(247px,23.4vw,280px) / clamp(29px,3.9vw,39px) - the extra room
-     is for the tagline overlaid into the name's lower portion below, so
-     it doesn't feel cramped. */
-  width: clamp(284px, 26.9vw, 322px);
-  height: clamp(284px, 26.9vw, 322px);
+  /* Bumped again (was clamp(284px,26.9vw,322px), before that
+     clamp(247px,23.4vw,280px)) so the circle's edge clears the
+     bubble-brand-tagline's stretched (scaleX 1.55) width instead of the
+     "SOFTWARE SOLUTIONS" text running past it - the tagline can render up
+     to ~18 monospace chars * ~0.6em + letter-spacing, times 1.55, which
+     needs roughly 405px of room at this rule's own max font-size. */
+  width: clamp(357px, 34vw, 405px);
+  height: clamp(357px, 34vw, 405px);
   font-family:'Archivo Black', 'Space Mono', monospace;
-  font-size: clamp(33px, 4.5vw, 45px);
+  font-size: clamp(38px, 5.2vw, 52px);
   font-weight: 400;
   letter-spacing: -0.5px;
   color: var(--ember);
@@ -250,40 +252,54 @@ body{
   top: 50%; left: 50%;
   transform: translate(-50%, -50%);
   white-space: nowrap;
+  /* Own declaration (not just relying on the base .bubble rule) so this
+     wins over the inherited white sticker-stroke outline regardless of
+     the parent's specificity - just a hairline black contact shadow
+     instead, matching .bubble-brand-tagline's treatment. */
+  text-shadow: 0 1px 2px rgba(0,0,0,0.5);
 }
 .bubble-brand-tagline{
   /* Same treatment as #brand-backdrop-tagline: translucent flame-gradient
      text via background-clip, overlapping the name's own lower portion
-     rather than a solid caption stacked cleanly below it. */
+     rather than a solid caption stacked cleanly below it. scaleX stretches
+     the word to span the full bubble width instead of sitting as a small
+     nowrap label in the middle of it - transform-origin stays centered so
+     the translateX(-50%) centering still holds after the stretch. */
   position: absolute;
   left: 50%;
   top: 51.5%;
-  transform: translateX(-50%);
+  transform: translateX(-50%) scaleX(1.55) scaleY(1.35);
   white-space: nowrap;
   font-family:'Space Mono', monospace;
-  font-size: clamp(10px, 1.3vw, 15px);
+  font-size: clamp(14px, 2vw, 20px);
   font-weight: 700;
   letter-spacing: 1.5px;
   text-transform: uppercase;
-  background: linear-gradient(180deg, rgba(255,196,90,0.65) 0%, rgba(216,92,48,0.5) 55%, rgba(184,69,46,0.2) 100%);
+  /* Redder + more opaque than the flame-name gradient (less yellow/orange,
+     no fading-out low-alpha tail) so the color itself carries legibility
+     instead of leaning on an outline. */
+  background: linear-gradient(180deg, rgba(255,90,60,0.95) 0%, rgba(217,38,28,0.9) 55%, rgba(163,26,20,0.85) 100%);
   background-size: 100% 240%;
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
   animation: flame-flicker 5s ease-in-out infinite;
+  /* No stroke/outline (was a bright white sticker-edge inherited from the
+     base .bubble rule) - just a hairline black contact shadow for edge
+     definition against the backdrop. */
+  text-shadow: 0 1px 1px rgba(0,0,0,0.6);
 }
 .bubble.bubble-bizname{
   width: clamp(195px, 19vw, 220px);
   height: clamp(195px, 19vw, 220px);
   font-family:'Space Mono', monospace;
   font-weight: 700;
-  /* Was clamp(11px,1.5vw,14px) - text barely used a third of the
-     circle. Bigger text plus tighter padding (overriding the shared
+  /* Was clamp(15px,2.4vw,20px), before that clamp(11px,1.5vw,14px) -
+     bigger text plus tighter padding (overriding the shared
      .bubble-content 24px) actually fills the space. */
-  font-size: clamp(15px, 2.4vw, 20px);
+  font-size: clamp(16px, 2.6vw, 22px);
   letter-spacing: 1px;
   text-transform: uppercase;
-  color: var(--char);
   padding: 14px;
   top: 21%; left: 50%;
 }
@@ -293,25 +309,84 @@ body{
   font-family:'Work Sans', sans-serif;
   font-style: italic;
   font-weight: 400;
-  color: var(--char);
   /* Thinner strokes than the bold uppercase mono used elsewhere (and a
      full sentence, not one word) - needs its own bump past the shared
-     .bubble-content tint plus a fuller 8-direction outline (vs. the base
-     .bubble's 4-diagonal) since italic strokes carry more edge angles. */
+     .bubble-content tint to stay legible. No stroke/outline (was an
+     8-direction near-opaque white sticker-edge) - just a soft dark
+     contact shadow, same restrained treatment as the base .bubble rule
+     below, one notch stronger since italic strokes are thinner. */
   background: rgba(247,243,233,0.36);
-  text-shadow:
-    -1px 0 0 rgba(247,243,233,0.98), 1px 0 0 rgba(247,243,233,0.98),
-    0 -1px 0 rgba(247,243,233,0.98), 0 1px 0 rgba(247,243,233,0.98),
-    -1px -1px 0 rgba(247,243,233,0.98), 1px -1px 0 rgba(247,243,233,0.98),
-    -1px 1px 0 rgba(247,243,233,0.98), 1px 1px 0 rgba(247,243,233,0.98),
-    0 1px 3px rgba(31,27,22,0.4);
-  /* Was clamp(12px,1.5vw,14.5px) - bumped up alongside tighter padding
-     (overriding the shared .bubble-content 24px) so the sentence
-     actually fills the circle instead of floating in the middle third. */
-  font-size: clamp(15px, 2.1vw, 19px);
+  text-shadow: 0 1px 3px rgba(31,27,22,0.5), 0 1px 1px rgba(31,27,22,0.35);
+  /* Was clamp(15px,2.1vw,19px), before that clamp(12px,1.5vw,14.5px) -
+     bumped up alongside tighter padding (overriding the shared
+     .bubble-content 24px) so the sentence actually fills the circle
+     instead of floating in the middle third. */
+  font-size: clamp(16px, 2.3vw, 21px);
   line-height: 1.35;
   padding: 14px;
   top: 19%; left: 80%;
+}
+/* Ticker rides on top of the (always-present, opacity:0 by default)
+   full sentence - absolutely positioned so it doesn't disturb the flex
+   centering .bubble-content uses for the full-text span underneath it.
+   inset:0 sits at the ancestor's padding edge (ignoring the ancestor's
+   own padding), so padding/box-sizing are repeated here to match. Bigger
+   font than the full-paragraph version since only ~6 words need to fit
+   at a time - the whole point of chunking is more legible text. */
+.bubble-tagline-ticker{
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  box-sizing: border-box;
+  padding: 14px;
+  font-size: clamp(18px, 2.6vw, 23px);
+  line-height: 1.3;
+  pointer-events: none;
+  transition: opacity 0.3s ease;
+  animation: ticker-rise 2.8s ease-in-out infinite;
+}
+.bubble-tagline-full{
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+/* Dark red edge (matches --ember/the flame-tagline gradient) instead of
+   the brass stroke every other bubble uses - "the blurb" needed to read
+   as more noticeable, not just consistent with the rest. */
+.bubble-tagline-ticker,
+.bubble-tagline-full{
+  -webkit-text-stroke: 0.7px rgba(122,31,20,0.9);
+}
+.bubble.bubble-tagline:hover .bubble-tagline-ticker,
+.bubble.bubble-tagline:focus-visible .bubble-tagline-ticker{
+  /* animation:none (not animation-play-state:paused) - a *running*
+     (even if paused) CSS animation still owns the opacity property and
+     overrides a plain opacity:0 sitting right next to it, so pausing
+     mid-hold left the ticker visibly stuck on screen instead of
+     disappearing. Fully removing the animation hands opacity back to
+     this rule outright. */
+  animation: none;
+  opacity: 0;
+}
+.bubble.bubble-tagline:hover .bubble-tagline-full,
+.bubble.bubble-tagline:focus-visible .bubble-tagline-full{
+  opacity: 1;
+}
+/* Text swaps via JS on the 'animationiteration' event, timed to the
+   instant the chunk is fully invisible below (0%/100% overlap), so the
+   content change itself is never visible - only the rise/hold/exit
+   motion is. */
+@keyframes ticker-rise{
+  0%   { transform: translateY(14px); opacity: 0; }
+  12%  { transform: translateY(0);    opacity: 1; }
+  82%  { transform: translateY(0);    opacity: 1; }
+  100% { transform: translateY(-14px); opacity: 0; }
+}
+@media (prefers-reduced-motion: reduce){
+  .bubble-tagline-ticker{ animation: none; opacity: 0; }
+  .bubble-tagline-full{ opacity: 1; }
 }
 
 #bubble-nav{
@@ -337,36 +412,59 @@ body{
      brightness(0.34)), and saturate() is the "amplify" - colors behind
      the glass read richer than the flat scene around it, like a lens.
      At this little blur, legibility can't lean on the backdrop being
-     softened at all - it's carried entirely by the text-shadow stack: a
-     crisp, zero-blur 1px outline in four diagonal directions (a sticker-
-     style stroke, not a glow - glows are what read as "muddy") plus a
-     faint dark shadow underneath for the rare bright patch of backdrop. */
+     softened at all - it leans on the light cream glass tint + brightness
+     boost instead, which already lifts the dark --char text off the
+     backdrop. A soft dark contact shadow (no stroke/outline - a hard
+     white 4-diagonal sticker-edge read as too heavy) adds just enough
+     grounding against the rare bright patch of backdrop. */
   background: rgba(247,243,233,0.16);
   -webkit-backdrop-filter: blur(4px) saturate(1.7) brightness(1.35);
   backdrop-filter: blur(4px) saturate(1.7) brightness(1.35);
   border: 1.5px solid rgba(184,69,46,0.55);
   color: var(--char);
   font-family:'Space Mono', monospace;
-  /* 50% bigger - was 13px. This is the base rule the 4 nav buttons
-     (THE MENU/THE CHEF/THE PASS/FRONT OF HOUSE) use directly; the
-     bubble-content variants (brand/bizname/tagline) override font-size
-     themselves so they're unaffected. */
-  font-size: 19.5px;
+  /* Was 19.5px (before that 13px) - bumped again, the gradient fill plus
+     thin stroke below needed a bit more size to stay legible. This is the
+     base rule the 4 nav buttons (THE MENU/THE CHEF/THE PASS/FRONT OF
+     HOUSE) use directly; the bubble-content variants (brand/bizname/
+     tagline) override font-size themselves so they're unaffected. */
+  font-size: 22px;
   font-weight:700;
   letter-spacing: 1px;
   text-transform: uppercase;
-  text-shadow:
-    -1px -1px 0 rgba(247,243,233,0.95),
-     1px -1px 0 rgba(247,243,233,0.95),
-    -1px  1px 0 rgba(247,243,233,0.95),
-     1px  1px 0 rgba(247,243,233,0.95),
-     0 1px 2px rgba(31,27,22,0.35);
+  text-shadow: 0 1px 3px rgba(31,27,22,0.4), 0 1px 1px rgba(31,27,22,0.3);
   cursor:pointer;
   opacity:0;
   pointer-events:none;
   transform: translate(-50%, -50%) scale(0.3);
   transition: opacity 0.7s ease, transform 0.7s ease, background 0.3s ease;
   box-shadow: 0 10px 24px rgba(0,0,0,0.18), inset 0 1px 1px rgba(255,255,255,0.5), inset 0 -14px 22px rgba(0,0,0,0.05);
+}
+/* Thin metallic (antique-brass) text edge on every bubble except
+   ChefMyKLove - 0.5px is the practical floor for text-stroke: sub-pixel
+   values below that only render on high-DPI/retina screens, and
+   text-shadow-based "borders" can't go this thin at all (they're offset
+   copies of the glyph, not a true stroke, so anything under 1px just
+   blurs away). :not(.bubble-brand) excludes the brand bubble AND its
+   .bubble-brand-name/.bubble-brand-tagline children, since text-stroke
+   inherits and the brand bubble itself never receives it here. */
+.bubble:not(.bubble-brand){
+  -webkit-text-stroke: 0.5px rgba(201,166,107,0.8);
+}
+/* The flat --char fill plus a 0.5px stroke wasn't legible enough on its
+   own - wrapped each label in its own span (.bubble-label, in the HTML)
+   so a real gradient fill can carry contrast instead, the same
+   background-clip:text technique .bubble-brand-tagline already uses.
+   Can't apply this to the .bubble element itself (buttons, bizname,
+   tagline) - that element's own `background` is the frosted-glass circle
+   tint, and setting a text gradient there would overwrite it. Kept inside
+   the warm ember/gold/sage palette (not a full neon rainbow) so it reads
+   as "shiny" without clashing with the kitchen theme elsewhere. */
+.bubble-label{
+  background: linear-gradient(135deg, #B8452E 0%, #D9843F 32%, #E8B33D 58%, #5C6B54 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
 }
 /* Specular highlight that slides across the surface as a bubble tilts
    (--glare-x/--glare-y are set in JS alongside the rotateX/rotateY tilt
@@ -385,7 +483,9 @@ body{
 }
 #stage.resolved .bubble{ opacity:1; pointer-events:auto; transform: translate(-50%, -50%) scale(1); }
 .bubble:hover, .bubble:focus-visible{
-  transform: translate(-50%, -50%) scale(1.08) rotate(-3deg);
+  /* Was scale(1.08) - read as barely-there per feedback; ~30% more
+     pronounced magnification so the hover/focus state is unmistakable. */
+  transform: translate(-50%, -50%) scale(1.4) rotate(-3deg);
   outline: 3px solid var(--sage);
   outline-offset: 3px;
 }
@@ -393,18 +493,23 @@ body{
 .bubble[data-panel="chef"]{ top: 70%; left: 62%; }
 .bubble[data-panel="pass"]{ top: 81%; left: 30%; }
 .bubble[data-panel="foh"]{  top: 51%; left: 72%; }
-/* Kudos: fixed small size on both mobile and desktop, matching the
-   rainbow link's flat 60px (not the big clamp() nav size, and not
-   randomized like the rainbow deco bubble's DECO_DIAMETERS pool - always
-   this one size). Font/letter-spacing scaled way down from the base
-   .bubble rule so "Kudos" still fits inside a circle this small. */
+/* Kudos: no size override, so it uses the base .bubble medium clamp -
+   same footprint as the four panel nav buttons and Donate below, just a
+   sixth stop. */
 .bubble[data-modal="kudos"]{
-  width: 60px;
-  height: 60px;
-  font-size: 8.5px;
-  letter-spacing: 0.3px;
   top: 38%;
   left: 48%;
+}
+/* Donate: ~50% of the base .bubble medium clamp (was clamp(120px,16vw,170px))
+   - font-size/letter-spacing scaled down to match, same ratio Kudos used
+   to use at its old fixed 60px size. */
+.bubble[data-modal="donate"]{
+  width: clamp(60px, 8vw, 85px);
+  height: clamp(60px, 8vw, 85px);
+  font-size: 9px;
+  letter-spacing: 0.4px;
+  top: 33%;
+  left: 85%;
 }
 
 /* Nav tooltips are real sibling elements (built in JS, same pattern as
@@ -606,7 +711,7 @@ body{
   }
   .bubble{ position:static; transform: scale(0.3); }
   #stage.resolved .bubble{ transform: scale(1); }
-  .bubble:hover, .bubble:focus-visible{ transform: scale(1.05); }
+  .bubble:hover, .bubble:focus-visible{ transform: scale(1.25); }
   .bubble.ambient{ animation-name: bob-static; }
   /* The desktop clamp() minimums (180-270px) are sized for vw scaling
      that only kicks in above ~900px - below that they clamp to their
@@ -625,7 +730,7 @@ body{
        just another cell in the pair-grid. */
     grid-column: 1 / -1;
   }
-  .bubble-brand-tagline{ font-size: 10px; letter-spacing: 1px; }
+  .bubble-brand-tagline{ font-size: 13px; letter-spacing: 1px; }
   .bubble.bubble-bizname{ width:150px; height:150px; font-size:13px; padding:10px; }
   .bubble.bubble-tagline{ width:150px; height:150px; font-size:13.5px; padding:10px; }
   #boil-again{ position:fixed; top:12px; bottom:auto; z-index:5; }
@@ -740,6 +845,69 @@ body{
 }
 @media (prefers-reduced-motion: reduce){
   .modal-overlay, .modal-card{ transition: none; }
+}
+.donate-intro{
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--char);
+  margin: 0 0 20px;
+}
+.donate-options{
+  display:flex;
+  flex-direction:column;
+  gap: 10px;
+}
+.donate-option{
+  display:flex;
+  align-items:center;
+  gap: 14px;
+  padding: 12px 16px;
+  border: 1.5px solid rgba(184,69,46,0.35);
+  border-radius: 10px;
+  text-decoration:none;
+  color: var(--char);
+  background: none;
+  font: inherit;
+  text-align: left;
+  width: 100%;
+  cursor: pointer;
+  appearance: none;
+  transition: border-color 0.2s ease, background 0.2s ease;
+}
+.donate-option:hover, .donate-option:focus-visible{
+  border-color: var(--ember);
+  background: rgba(184,69,46,0.06);
+}
+/* QR codes need their own quiet-zone/contrast regardless of the source
+   image's own padding, so a solid white backing rather than transparent -
+   scanning apps can fail on a QR sitting directly on a tinted background. */
+.donate-qr{
+  width: 56px;
+  height: 56px;
+  flex-shrink: 0;
+  object-fit: contain;
+  background: #fff;
+  border: 1px solid rgba(184,69,46,0.2);
+  border-radius: 6px;
+}
+.donate-option-body{
+  display:flex;
+  flex-direction:column;
+  gap: 3px;
+  min-width: 0;
+}
+.donate-option-label{
+  font-family:'Space Mono', monospace;
+  font-weight:700;
+  letter-spacing:0.5px;
+  text-transform:uppercase;
+  font-size: 13px;
+  color: var(--ember);
+}
+.donate-option-note{
+  font-size: 12px;
+  color: var(--slate);
+  word-break: break-all;
 }
 
 .eyebrow{
@@ -1064,17 +1232,29 @@ a.tasting-thumb{ cursor:pointer; }
 
   <nav id="bubble-nav" aria-label="Site sections">
     <h1 class="bubble bubble-content bubble-brand" id="bubble-brand"><span class="bubble-brand-name">ChefMyKLove</span><span class="bubble-brand-tagline">Software Solutions</span></h1>
-    <div class="bubble bubble-content bubble-bizname" id="bubble-bizname">Custom Software Solutions<br>+ Digital Management</div>
-    <div class="bubble bubble-content bubble-tagline" id="bubble-tagline">I ran kitchens for thirty years. Now I'm cooking up your next great web experience.</div>
-    <button class="bubble" data-panel="menu" data-tooltip="services and pricing">The Menu</button>
-    <button class="bubble" data-panel="chef" data-tooltip="about me">The Chef</button>
-    <button class="bubble" data-panel="pass" data-tooltip="past client portfolio">The Pass</button>
-    <button class="bubble" data-panel="foh" data-tooltip="place your order">Front of House</button>
+    <div class="bubble bubble-content bubble-bizname" id="bubble-bizname"><span class="bubble-label">Custom Software Solutions<br>+ Digital Management</span></div>
+    <!-- Ticker (aria-hidden, decorative) rises through the sentence six
+         words at a time in a loop - see .bubble-tagline-ticker/@keyframes
+         ticker-rise. .bubble-tagline-full holds the real accessible text
+         (screen readers always get it regardless of visual state) and is
+         what appears, in full, on hover/focus. -->
+    <div class="bubble bubble-content bubble-tagline" id="bubble-tagline" tabindex="0">
+      <span class="bubble-label bubble-tagline-ticker" id="tagline-ticker" aria-hidden="true"></span>
+      <span class="bubble-label bubble-tagline-full">I ran kitchens for thirty years. Now I'm cooking up your next great web experience.</span>
+    </div>
+    <button class="bubble" data-panel="menu" data-tooltip="services and pricing"><span class="bubble-label">The Menu</span></button>
+    <button class="bubble" data-panel="chef" data-tooltip="about me"><span class="bubble-label">The Chef</span></button>
+    <button class="bubble" data-panel="pass" data-tooltip="past client portfolio"><span class="bubble-label">The Pass</span></button>
+    <button class="bubble" data-panel="foh" data-tooltip="place your order"><span class="bubble-label">Front of House</span></button>
     <!-- data-modal (not data-panel) - opens the lightweight #kudos-modal
          overlay below instead of a full-screen .panel. Still picked up by
          the nav-bubble physics confinement and tooltip wiring, which key
          off data-modal alongside data-panel - see initBubblePhysicsOnce. -->
-    <button class="bubble" data-modal="kudos" data-tooltip="nice things people have said">Kudos</button>
+    <button class="bubble" data-modal="kudos" data-tooltip="nice things people have said"><span class="bubble-label">Kudos</span></button>
+    <!-- Same data-modal wiring as Kudos above - opens #donate-modal.
+         Sized ~50% of the base .bubble medium clamp - see
+         .bubble[data-modal="donate"]. -->
+    <button class="bubble" data-modal="donate" data-tooltip="support the work"><span class="bubble-label">Donate</span></button>
     <!-- Mobile-only fallback: decorative bubbles (including the randomized
          rainbow link below) only ever spawn via the desktop physics JS,
          which bails out entirely under 700px width - without this, mobile
@@ -2205,8 +2385,8 @@ a.tasting-thumb{ cursor:pointer; }
     <p style="margin-bottom:14px; line-height:1.7;">
       Nobody warned me about the part that came after. In all the anguish of losing the only career
       I've ever known, I realised it actually wasn't starting over; it was finding different tools
-      with the same artist mind behind them. I've been making things with my hands since I was a
-      kid: soap, food, stories — whatever was in front of me became the art. Cooking just happened
+      with the same artist mind behind them. I've been making things with these hands since I was a
+      kid: stories, food, soap — whatever was in front of me became the art. Cooking just happened
       to be the one that paid the rent for three decades. So when the kitchen stopped being an
       option, I discovered I didn't lose myself. I only lost one particular set of tools.
     </p>
@@ -2397,6 +2577,39 @@ a.tasting-thumb{ cursor:pointer; }
   </div>
 </div>
 
+<!-- Same lightweight-modal pattern as #kudos-modal above, opened by the
+     Donate bubble. -->
+<div class="modal-overlay" id="donate-modal" role="dialog" aria-modal="true" aria-labelledby="donate-modal-title" hidden>
+  <div class="modal-card">
+    <button class="modal-close" type="button" aria-label="Close">&times;</button>
+    <h2 id="donate-modal-title" style="font-family:'Space Mono',monospace; margin-bottom:16px;">Support the Work</h2>
+    <p class="donate-intro">Your donations help maintain a sliding scale for our less advantaged patrons. If you have more than you need, there are many who need any extra you can give.</p>
+    <div class="donate-options">
+      <a class="donate-option" href="https://paypal.me/chefmyklove" target="_blank" rel="noopener noreferrer">
+        <img class="donate-qr" src="assets/qr/paypal-qr.jpeg" alt="PayPal QR code" loading="lazy">
+        <span class="donate-option-body">
+          <span class="donate-option-label">PayPal</span>
+          <span class="donate-option-note">@chefmyklove or chefmyklove@gmail.com</span>
+        </span>
+      </a>
+      <a class="donate-option" href="https://buymeacoffee.com/chefmyklovk" target="_blank" rel="noopener noreferrer">
+        <img class="donate-qr" src="assets/qr/bmc-qr.png" alt="Buy Me a Coffee QR code" loading="lazy">
+        <span class="donate-option-body">
+          <span class="donate-option-label">Buy Me a Coffee</span>
+          <span class="donate-option-note">buymeacoffee.com/chefmyklovk</span>
+        </span>
+      </a>
+      <button type="button" class="donate-option" id="donate-bsv" data-copy="1KypjxZpijh22kkJ9poRzWatAdYyBdtd57">
+        <img class="donate-qr" src="assets/qr/bsv-qr.png" alt="Bitcoin (BSV) donation address QR code" loading="lazy">
+        <span class="donate-option-body">
+          <span class="donate-option-label">Bitcoin</span>
+          <span class="donate-option-note" id="donate-bsv-note">1KypjxZpijh22kkJ9poRzWatAdYyBdtd57 (tap to copy)</span>
+        </span>
+      </button>
+    </div>
+  </div>
+</div>
+
 <script>
   var openPanelId = null;
   var lastFocusedTrigger = null;
@@ -2453,47 +2666,91 @@ a.tasting-thumb{ cursor:pointer; }
     btn.addEventListener('click', closePanel);
   });
 
-  // ---- Kudos modal (lightweight, not a full .panel) ----------------------
-  var kudosModal = document.getElementById('kudos-modal');
-  var kudosTrigger = document.querySelector('.bubble[data-modal="kudos"]');
-
-  function onKudosModalKeydown(e) {
-    if (e.key === 'Escape') closeKudosModal();
-  }
-
-  function openKudosModal() {
-    if (!kudosModal) return;
-    kudosModal.hidden = false;
-    requestAnimationFrame(function() { kudosModal.classList.add('open'); });
-    kudosModal.querySelector('.modal-close').focus();
-    document.addEventListener('keydown', onKudosModalKeydown);
-  }
-
-  function closeKudosModal() {
-    if (!kudosModal || !kudosModal.classList.contains('open')) return;
-    kudosModal.classList.remove('open');
-    var reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    if (reduceMotion) {
-      kudosModal.hidden = true;
-    } else {
-      kudosModal.addEventListener('transitionend', function finish() {
-        kudosModal.hidden = true;
-      }, { once: true });
+  // ---- Lightweight modals (Kudos, Donate - not full .panel) --------------
+  // Shared wiring since both are the same open/close/focus-trap/Escape
+  // pattern over a dim overlay - kept as one function instead of a second
+  // copy-pasted kudos-shaped block now that there are two of these.
+  function wireLightweightModal(modal, trigger) {
+    if (!modal) return;
+    function onKeydown(e) {
+      if (e.key === 'Escape') close();
     }
-    document.removeEventListener('keydown', onKudosModalKeydown);
-    if (kudosTrigger) kudosTrigger.focus();
-  }
-
-  if (kudosTrigger) {
-    kudosTrigger.addEventListener('click', openKudosModal);
-  }
-  if (kudosModal) {
-    kudosModal.querySelector('.modal-close').addEventListener('click', closeKudosModal);
+    function open() {
+      modal.hidden = false;
+      requestAnimationFrame(function() { modal.classList.add('open'); });
+      modal.querySelector('.modal-close').focus();
+      document.addEventListener('keydown', onKeydown);
+    }
+    function close() {
+      if (!modal.classList.contains('open')) return;
+      modal.classList.remove('open');
+      var reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      if (reduceMotion) {
+        modal.hidden = true;
+      } else {
+        modal.addEventListener('transitionend', function finish() {
+          modal.hidden = true;
+        }, { once: true });
+      }
+      document.removeEventListener('keydown', onKeydown);
+      if (trigger) trigger.focus();
+    }
+    if (trigger) trigger.addEventListener('click', open);
+    modal.querySelector('.modal-close').addEventListener('click', close);
     // Click on the dim overlay itself (not the card) closes it too.
-    kudosModal.addEventListener('click', function(e) {
-      if (e.target === kudosModal) closeKudosModal();
+    modal.addEventListener('click', function(e) {
+      if (e.target === modal) close();
     });
   }
+
+  wireLightweightModal(document.getElementById('kudos-modal'), document.querySelector('.bubble[data-modal="kudos"]'));
+  wireLightweightModal(document.getElementById('donate-modal'), document.querySelector('.bubble[data-modal="donate"]'));
+
+  // ---- Tagline ticker: cycles the full sentence 6 words at a time ------
+  // CSS (@keyframes ticker-rise) drives all the motion; this only swaps
+  // the chunk text at each animationiteration, which fires right when the
+  // element is fully invisible (0%/100% overlap in the keyframes), so the
+  // content change itself is never visible mid-rise.
+  (function() {
+    var ticker = document.getElementById('tagline-ticker');
+    var full = document.querySelector('.bubble-tagline-full');
+    if (!ticker || !full) return;
+    var words = full.textContent.trim().split(/\s+/);
+    var CHUNK_SIZE = 6;
+    var chunks = [];
+    for (var i = 0; i < words.length; i += CHUNK_SIZE) {
+      chunks.push(words.slice(i, i + CHUNK_SIZE).join(' '));
+    }
+    var idx = 0;
+    ticker.textContent = chunks[0];
+    if (chunks.length <= 1 || window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      return;
+    }
+    ticker.addEventListener('animationiteration', function() {
+      idx = (idx + 1) % chunks.length;
+      ticker.textContent = chunks[idx];
+    });
+  })();
+
+  // ---- Bitcoin donate option: copy address instead of navigating -------
+  (function() {
+    var btn = document.getElementById('donate-bsv');
+    var note = document.getElementById('donate-bsv-note');
+    if (!btn || !note) return;
+    var address = btn.dataset.copy;
+    var defaultNote = note.textContent;
+    var resetTimer = null;
+    btn.addEventListener('click', function() {
+      if (!navigator.clipboard) return;
+      navigator.clipboard.writeText(address).then(function() {
+        note.textContent = 'Copied to clipboard';
+        clearTimeout(resetTimer);
+        resetTimer = setTimeout(function() {
+          note.textContent = defaultNote;
+        }, 2000);
+      });
+    });
+  })();
 </script>
 
 <script>
