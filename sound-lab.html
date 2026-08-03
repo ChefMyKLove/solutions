@@ -30,7 +30,7 @@ body{
   background: var(--bg);
   color: var(--paper);
   font-family:'Segoe UI', Arial, sans-serif;
-  padding: 24px 20px 80px;
+  padding: 12px 10px 40px;
 }
 h1{
   font-size: 20px;
@@ -51,14 +51,19 @@ h1{
   margin-bottom: 18px;
   font-family:'Consolas','Menlo',monospace;
 }
-.transport{
+.mixer-head{
   position: sticky;
   top: 0;
   z-index: 5;
+  background: var(--bg);
+  padding-top: 2px;
+  margin: 0 0 22px;
+}
+.transport{
   background: rgba(20,17,13,0.96);
   border: 1px solid var(--line);
   border-radius: 10px;
-  padding: 14px 16px;
+  padding: 7px 8px;
   display: flex;
   flex-wrap: wrap;
   align-items: center;
@@ -74,14 +79,14 @@ button{
   border: 1px solid var(--line);
   background: #262019;
   color: var(--paper);
-  padding: 8px 14px;
+  padding: 4px 7px;
 }
 button:hover{ border-color: var(--ember); }
 button:disabled{ opacity: 0.4; cursor: default; }
 button:disabled:hover{ border-color: var(--line); }
 button.primary{ background: var(--ember); border-color: var(--ember); color: #fff; font-weight: 600; }
 button.primary:hover{ opacity:0.9; }
-button.small{ padding: 3px 8px; font-size: 11px; border-radius: 5px; }
+button.small{ padding: 1.5px 4px; font-size: 11px; border-radius: 5px; }
 .track-status{
   font-family:'Consolas','Menlo',monospace;
   font-size: 11px;
@@ -106,8 +111,7 @@ button.small{ padding: 3px 8px; font-size: 11px; border-radius: 5px; }
   background: var(--panel);
   border: 1px solid var(--line);
   border-radius: 10px;
-  padding: 10px 12px;
-  margin-bottom: 22px;
+  padding: 5px 6px;
 }
 .timeline-wrap .cap{
   font-size: 11px;
@@ -128,7 +132,7 @@ button.small{ padding: 3px 8px; font-size: 11px; border-radius: 5px; }
   background: var(--panel);
   border: 1px solid var(--line);
   border-radius: 10px;
-  padding: 14px 16px;
+  padding: 7px 8px;
   margin-bottom: 12px;
 }
 .layer-head{
@@ -199,7 +203,7 @@ button.small{ padding: 3px 8px; font-size: 11px; border-radius: 5px; }
   background: var(--panel);
   border: 1px solid var(--line);
   border-radius: 10px;
-  padding: 16px;
+  padding: 8px;
   margin-top: 24px;
 }
 .io h2{ font-size:14px; margin:0 0 10px; color: var(--ember); }
@@ -213,7 +217,7 @@ textarea{
   border-radius: 6px;
   font-family:'Consolas','Menlo',monospace;
   font-size: 12px;
-  padding: 10px;
+  padding: 5px;
 }
 .hint{ font-size: 11px; color: var(--muted); margin-top: 4px; }
 </style>
@@ -225,27 +229,31 @@ textarea{
   Each row is one real audio file from <code>assets/</code>, played through the Web Audio
   API so it can carry real effects (pan, pitch, reverb, warmth) on top of volume/delay/
   fade/hold. "Preview loop" plays that file alone so you can isolate exactly which clip
-  has a problem. "Play Full Mix" runs every layer together - the base bubbling loop never
-  stops once it starts; the three accents fade in at their delay, hold, then fade back out.
-  Export when it sounds right and send me the JSON.
+  has a problem. Base/Beans/Water each ship as two overlapping copies (Copy A/Copy B) -
+  both loop forever with no fade out, and Copy B starts offset by about half the file's own
+  length so it's always mid-loop covering Copy A's seam/click, and vice versa. Drag a block
+  on the timeline below to reposition it in time instead of using its Start Delay slider.
+  "Play Full Mix" runs every layer together. Export when it sounds right and send me the JSON.
 </p>
 <div class="loadstatus" id="loadStatus">Loading sounds…</div>
 
-<div class="transport">
-  <button class="primary" id="playMix" disabled>&#9654; Play Full Mix From Start</button>
-  <button id="stopAll">&#9632; Stop All</button>
-  <span class="elapsed" id="elapsed">0.0s</span>
-  <span class="now-playing" id="nowPlaying">Idle</span>
-  <label>Master Vol
-    <input type="range" id="masterVol" min="0" max="150" value="100">
-    <span class="readout" id="masterVolReadout">100%</span>
-  </label>
-  <button class="small" id="loadDefaults">Reset to Site Defaults</button>
-</div>
+<div class="mixer-head">
+  <div class="transport">
+    <button type="button" class="primary" id="playMix" disabled>&#9654; Play Full Mix From Start</button>
+    <button type="button" id="stopAll">&#9632; Stop All</button>
+    <span class="elapsed" id="elapsed">0.0s</span>
+    <span class="now-playing" id="nowPlaying">Idle</span>
+    <label>Master Vol
+      <input type="range" id="masterVol" min="0" max="150" value="100">
+      <span class="readout" id="masterVolReadout">100%</span>
+    </label>
+    <button type="button" class="small" id="loadDefaults">Reset to Site Defaults</button>
+  </div>
 
-<div class="timeline-wrap">
-  <div class="cap"><span>Timeline (start delay &#8594; fade &#8594; hold &#8594; fade out)</span><span id="timelineWindowLabel"></span></div>
-  <canvas id="timeline"></canvas>
+  <div class="timeline-wrap">
+    <div class="cap"><span>Timeline (start delay &#8594; fade &#8594; hold &#8594; fade out) - drag a block to move it</span><span id="timelineWindowLabel"></span></div>
+    <canvas id="timeline"></canvas>
+  </div>
 </div>
 
 <div id="layers"></div>
@@ -253,16 +261,16 @@ textarea{
 <div class="io">
   <h2>Export / Import</h2>
   <div class="row">
-    <button id="exportBtn">Export Settings (JSON)</button>
-    <button id="downloadBtn">Download as File</button>
-    <button id="copyBtn">Copy to Clipboard</button>
+    <button type="button" id="exportBtn">Export Settings (JSON)</button>
+    <button type="button" id="downloadBtn">Download as File</button>
+    <button type="button" id="copyBtn">Copy to Clipboard</button>
     <label style="font-size:12px;color:var(--muted)">
       Load a file: <input type="file" id="importFile" accept="application/json">
     </label>
   </div>
   <textarea id="jsonBox" placeholder="Exported settings appear here. You can also paste a saved config in and click Apply."></textarea>
   <div class="row">
-    <button id="applyBtn">Apply JSON Above</button>
+    <button type="button" id="applyBtn">Apply JSON Above</button>
     <span class="hint" id="ioStatus"></span>
   </div>
 </div>
@@ -279,6 +287,16 @@ textarea{
   //   cycle; Gap governs every cycle after that. Ignition is loop:false
   //   (one-shot) so its "hold" is really just its own natural length -
   //   holdMs/fadeOutMs don't apply to it, only Repeat/Gap do.
+  // Every bubbling file (base/beans/water) ships as two overlapping
+  // copies, A and B. Both loop continuously forever (huge holdMax, 0 fade
+  // out) - the trick is Copy B starts offset by roughly half the file's
+  // own duration (auto-computed once the buffer decodes, see
+  // applyDynamicDelays below), so whenever Copy A hits its loop-point
+  // click/seam, Copy B is sitting mid-loop covering it, and vice versa.
+  // Two continuous copies summed together are naturally louder than one,
+  // so each copy's default Volume is dialed down from the old single-copy
+  // value - nudge to taste from there. Ignition and the gas hiss stay
+  // single copies, as before.
   const LAYERS = [
     {
       id: 'ignition', label: 'Ignition (click)', file: 'assets/sfx-ignition.mp3',
@@ -286,29 +304,65 @@ textarea{
       defaults: { volume: 100, delayMs: 0, fadeInMs: 0, pan: 0, pitch: 0, reverb: 0, decay: 55, warmth: 20000, repeat: false, gapMs: 4000 }
     },
     {
-      id: 'gas', label: 'Gas Hiss (loop)', file: 'assets/sfx-gas-hiss.mp3',
+      id: 'gas', label: 'Gas Hiss (loop, separate file)', file: 'assets/sfx-gas-hiss.mp3',
       loop: true, hasHold: true, canRepeat: true, holdMax: 3600000, color: '#8B7355',
       defaults: { volume: 35, delayMs: 450, fadeInMs: 900, holdMs: 3600000, fadeOutMs: 1000, pan: 0, pitch: 0, reverb: 0, decay: 55, warmth: 20000, repeat: false, gapMs: 2000 }
     },
     {
-      id: 'base', label: 'Bubbling Base (loop)', file: 'assets/sfx-bubbling-base.mp3',
+      // Experiment: instead of a separate gas-hiss file, loop the ignition
+      // recording's OWN tail hiss forever as the gas sound. hasLoopRegion
+      // gives it a "Loop Start" slider - drag it (with Preview Loop alone)
+      // to the moment the click's transient has decayed into steady hiss.
+      // startLayer() below then starts THIS copy's playback already at
+      // that offset (skips the click) and sets the native AudioBuffer-
+      // SourceNode loopStart/loopEnd so only that tail segment repeats,
+      // sample-accurately, for the same practically-forever Hold as gas.
+      // A/B it against the Gas Hiss layer above by ear - mute one via its
+      // Volume slider, or use each layer's own Preview Loop alone button.
+      id: 'ignition-tail', label: 'Ignition Tail Hiss (loops as gas, from ignition file)',
+      file: 'assets/sfx-ignition.mp3',
+      loop: true, hasHold: true, hasLoopRegion: true, canRepeat: true, holdMax: 3600000, color: '#D9A24B',
+      // loopEndMs default is a placeholder - applyDynamicLoopEnd() below
+      // overwrites it once the real buffer duration is known (trimming
+      // ~1s off the tail, where recordings like this one commonly decay
+      // toward silence before the file actually ends).
+      defaults: { volume: 35, delayMs: 0, fadeInMs: 400, loopStartMs: 2500, loopEndMs: 8000, holdMs: 3600000, fadeOutMs: 1000, pan: 0, pitch: 0, reverb: 0, decay: 55, warmth: 20000, repeat: false, gapMs: 2000 }
+    },
+    {
+      id: 'base-a', family: 'base', copy: 'a', groupTitle: 'Bubbling Base - two copies overlapped to hide the loop seam',
+      label: 'Bubbling Base - Copy A', file: 'assets/sfx-bubbling-base.mp3',
       loop: true, hasHold: true, canRepeat: true, holdMax: 3600000, color: '#5C6B54',
-      defaults: { volume: 50, delayMs: 750, fadeInMs: 1400, holdMs: 3600000, fadeOutMs: 1000, pan: 0, pitch: 0, reverb: 0, decay: 55, warmth: 20000, repeat: false, gapMs: 2000 }
+      defaults: { volume: 33, delayMs: 0, fadeInMs: 1200, holdMs: 3600000, fadeOutMs: 0, pan: -8, pitch: 0, reverb: 0, decay: 55, warmth: 20000, repeat: false, gapMs: 2000 }
     },
     {
-      id: 'rice', label: 'Accent: Rice (loop, fades in/out)', file: 'assets/sfx-bubbling-rice.mp3',
-      loop: true, hasHold: true, canRepeat: true, color: '#C8A96A',
-      defaults: { volume: 32, delayMs: 12000, fadeInMs: 4000, holdMs: 12000, fadeOutMs: 4000, pan: -20, pitch: 0, reverb: 0, decay: 55, warmth: 20000, repeat: true, gapMs: 8000 }
+      id: 'base-b', family: 'base', copy: 'b', dynamicDelayFrom: 'base-a',
+      label: 'Bubbling Base - Copy B', file: 'assets/sfx-bubbling-base.mp3',
+      loop: true, hasHold: true, canRepeat: true, holdMax: 3600000, color: '#5C6B54',
+      defaults: { volume: 33, delayMs: 2500, fadeInMs: 1200, holdMs: 3600000, fadeOutMs: 0, pan: 8, pitch: 0, reverb: 0, decay: 55, warmth: 20000, repeat: false, gapMs: 2000 }
     },
     {
-      id: 'beans', label: 'Accent: Beans (loop, fades in/out)', file: 'assets/sfx-bubbling-beans.mp3',
-      loop: true, hasHold: true, canRepeat: true, color: '#A0684C',
-      defaults: { volume: 32, delayMs: 32000, fadeInMs: 4000, holdMs: 12000, fadeOutMs: 4000, pan: 20, pitch: 0, reverb: 0, decay: 55, warmth: 20000, repeat: true, gapMs: 8000 }
+      id: 'beans-a', family: 'beans', copy: 'a', groupTitle: 'Accent: Beans - two copies overlapped, continuous (no fade out)',
+      label: 'Beans - Copy A', file: 'assets/sfx-bubbling-beans.mp3',
+      loop: true, hasHold: true, canRepeat: true, holdMax: 3600000, color: '#A0684C',
+      defaults: { volume: 21, delayMs: 600, fadeInMs: 1500, holdMs: 3600000, fadeOutMs: 0, pan: 12, pitch: 0, reverb: 0, decay: 55, warmth: 20000, repeat: false, gapMs: 2000 }
     },
     {
-      id: 'water', label: 'Accent: Water (loop, fades in/out)', file: 'assets/sfx-bubbling-water.mp3',
-      loop: true, hasHold: true, canRepeat: true, color: '#6E8FA3',
-      defaults: { volume: 32, delayMs: 52000, fadeInMs: 4000, holdMs: 12000, fadeOutMs: 4000, pan: 0, pitch: 0, reverb: 8, decay: 55, warmth: 20000, repeat: true, gapMs: 8000 }
+      id: 'beans-b', family: 'beans', copy: 'b', dynamicDelayFrom: 'beans-a',
+      label: 'Beans - Copy B', file: 'assets/sfx-bubbling-beans.mp3',
+      loop: true, hasHold: true, canRepeat: true, holdMax: 3600000, color: '#A0684C',
+      defaults: { volume: 21, delayMs: 2000, fadeInMs: 1500, holdMs: 3600000, fadeOutMs: 0, pan: 28, pitch: 0, reverb: 0, decay: 55, warmth: 20000, repeat: false, gapMs: 2000 }
+    },
+    {
+      id: 'water-a', family: 'water', copy: 'a', groupTitle: 'Accent: Water - two copies overlapped, continuous (no fade out)',
+      label: 'Water - Copy A', file: 'assets/sfx-bubbling-water.mp3',
+      loop: true, hasHold: true, canRepeat: true, holdMax: 3600000, color: '#6E8FA3',
+      defaults: { volume: 21, delayMs: 900, fadeInMs: 1500, holdMs: 3600000, fadeOutMs: 0, pan: -8, pitch: 0, reverb: 8, decay: 55, warmth: 20000, repeat: false, gapMs: 2000 }
+    },
+    {
+      id: 'water-b', family: 'water', copy: 'b', dynamicDelayFrom: 'water-a',
+      label: 'Water - Copy B', file: 'assets/sfx-bubbling-water.mp3',
+      loop: true, hasHold: true, canRepeat: true, holdMax: 3600000, color: '#6E8FA3',
+      defaults: { volume: 21, delayMs: 2000, fadeInMs: 1500, holdMs: 3600000, fadeOutMs: 0, pan: 8, pitch: 0, reverb: 8, decay: 55, warmth: 20000, repeat: false, gapMs: 2000 }
     }
   ];
 
@@ -332,6 +386,26 @@ textarea{
   let mixStartTime = null;
   let soloActiveId = null;
 
+  // ---- Persistence ---------------------------------------------------------
+  // Every slider/checkbox tweak is saved to localStorage as it happens, so
+  // reloading this page (or coming back tomorrow) picks up exactly where you
+  // left off instead of snapping back to the hardcoded LAYERS defaults.
+  // "Reset to Site Defaults" is the only thing that clears it - see
+  // clearSavedSettings() in loadDefaults() below.
+  const STORAGE_KEY = 'cmk-sound-lab-settings-v1';
+  function saveSettings() {
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(getSettings())); } catch (err) { /* private mode etc. */ }
+  }
+  function loadSavedSettings() {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      return raw ? JSON.parse(raw) : null;
+    } catch (err) { return null; }
+  }
+  function clearSavedSettings() {
+    try { localStorage.removeItem(STORAGE_KEY); } catch (err) { /* ignore */ }
+  }
+
   // ---- Build one clip's effects graph and start it -------------------------
   // Mirrors the naked.chefmyklove.com Composer's approach: a fresh
   // AudioBufferSourceNode + GainNode + BiquadFilter (+ a simple delay-based
@@ -349,6 +423,26 @@ textarea{
     src.buffer = buffer;
     src.playbackRate.value = rate;
     src.loop = e.layer.loop || soloActiveId === e.layer.id;
+
+    // Partial-buffer loop (ignition-tail): play the file already offset
+    // past the click, and tell the native looper to wrap back to that
+    // same offset instead of sample 0 - so once started, only the tail
+    // segment from loopStartSec to loopEndSec ever repeats. loopEndSec is
+    // NOT just buffer.duration - a raw recording's very last stretch
+    // commonly decays toward silence before the file actually ends, and
+    // looping through that decay (then snapping straight back to a
+    // steady-state loopStart) is audible as a periodic dip/gap. Loop End
+    // exists so that decaying tail can be trimmed off before it's ever
+    // included in the loop.
+    let loopStartSec = 0;
+    if (e.layer.hasLoopRegion && params.loopStartMs != null) {
+      loopStartSec = Math.min(params.loopStartMs / 1000, Math.max(0, buffer.duration - 0.05));
+      let loopEndSec = params.loopEndMs != null ? params.loopEndMs / 1000 : buffer.duration;
+      loopEndSec = Math.min(loopEndSec, buffer.duration);
+      loopEndSec = Math.max(loopEndSec, loopStartSec + 0.05);
+      src.loopStart = loopStartSec;
+      src.loopEnd = loopEndSec;
+    }
 
     const gain = c.createGain();
     gain.gain.setValueAtTime(0, startAt);
@@ -389,7 +483,7 @@ textarea{
       gain.connect(masterGain);
     }
 
-    const nodeObj = { source: src, gain: gain, startedAt: startAt, buffer: buffer, rate: rate };
+    const nodeObj = { source: src, gain: gain, startedAt: startAt, buffer: buffer, rate: rate, loopStartSec: loopStartSec };
     // Non-looping clips (ignition) end on their own without anyone calling
     // stop() - without this, the ticker would keep treating them as
     // "playing" forever (frozen at 0:00 left) since e.isPlaying/e.node
@@ -404,7 +498,7 @@ textarea{
         e.statusEl.textContent = '';
       }
     };
-    src.start(startAt);
+    src.start(startAt, loopStartSec);
     return nodeObj;
   }
 
@@ -424,6 +518,14 @@ textarea{
   const layersRoot = document.getElementById('layers');
 
   LAYERS.forEach(function(layer) {
+    if (layer.groupTitle) {
+      const groupHead = document.createElement('div');
+      groupHead.className = 'group-label';
+      groupHead.style.marginTop = '18px';
+      groupHead.textContent = layer.groupTitle;
+      layersRoot.appendChild(groupHead);
+    }
+
     const wrap = document.createElement('div');
     wrap.className = 'layer';
 
@@ -458,6 +560,7 @@ textarea{
       input.addEventListener('input', function() {
         out.textContent = fmt ? fmt(parseFloat(input.value)) : input.value + unit;
         drawTimeline();
+        saveSettings();
       });
       return input;
     }
@@ -473,13 +576,29 @@ textarea{
         '</div>';
       controls.appendChild(field);
       const input = field.querySelector('input');
-      input.addEventListener('change', function() { drawTimeline(); });
+      input.addEventListener('change', function() { drawTimeline(); saveSettings(); });
       return input;
     }
 
     const volumeInput = makeField('Volume', 'volume', 0, 150, 1, layer.defaults.volume, '%');
     const delayInput = makeField('Start Delay', 'delay', 0, 90000, 50, layer.defaults.delayMs, 'ms');
     const fadeInInput = makeField('Fade In', 'fadeIn', 0, 8000, 100, layer.defaults.fadeInMs, 'ms');
+    let loopStartInput = null, loopEndInput = null;
+    if (layer.hasLoopRegion) {
+      // Where inside the SOURCE FILE playback begins and where the native
+      // loop point sits - not a start-of-mix delay. Drag while soloing
+      // "Preview loop alone" to find the moment the click's transient has
+      // decayed into steady hiss; playback starts there and wraps back to
+      // there instead of to sample 0, so only the tail repeats.
+      loopStartInput = makeField('Loop Start (skip past the click)', 'loopStart', 0, 8000, 50, layer.defaults.loopStartMs, 'ms');
+      // Where the native loop wraps back to Loop Start - defaults to a bit
+      // before the file's real end (see applyDynamicLoopEnd), NOT the raw
+      // end itself. Most recordings decay toward silence in their last
+      // stretch; looping through that decay and then snapping straight
+      // back to steady hiss is exactly what reads as a periodic "gap."
+      // Solo-preview and drag this left until the dip disappears.
+      loopEndInput = makeField('Loop End (trim the fade-out tail)', 'loopEnd', 0, 10000, 50, layer.defaults.loopEndMs, 'ms');
+    }
     let holdInput = null, fadeOutInput = null;
     if (layer.hasHold) {
       // Layers with holdMax (gas/base) can hold for up to an hour so they
@@ -520,6 +639,7 @@ textarea{
       const out = field.querySelector('.readout');
       input.addEventListener('input', function() {
         out.textContent = input.value + unit;
+        saveSettings();
       });
       return input;
     }
@@ -539,6 +659,7 @@ textarea{
     const soloRow = document.createElement('div');
     soloRow.style.marginTop = '10px';
     const soloBtn = document.createElement('button');
+    soloBtn.type = 'button';
     soloBtn.className = 'small';
     soloBtn.textContent = '▶ Preview loop alone';
     soloBtn.disabled = true;
@@ -552,7 +673,7 @@ textarea{
 
     els[layer.id] = {
       layer: layer,
-      volumeInput, delayInput, fadeInInput, holdInput, fadeOutInput,
+      volumeInput, delayInput, fadeInInput, loopStartInput, loopEndInput, holdInput, fadeOutInput,
       panInput, pitchInput, reverbInput, decayInput, warmthInput,
       repeatInput, gapInput,
       bar: bar.querySelector('i'),
@@ -585,6 +706,8 @@ textarea{
       volume: parseFloat(e.volumeInput.value),
       delayMs: parseFloat(e.delayInput.value),
       fadeInMs: parseFloat(e.fadeInInput.value),
+      loopStartMs: e.loopStartInput ? parseFloat(e.loopStartInput.value) : null,
+      loopEndMs: e.loopEndInput ? parseFloat(e.loopEndInput.value) : null,
       holdMs: e.holdInput ? parseFloat(e.holdInput.value) : 0,
       fadeOutMs: e.fadeOutInput ? parseFloat(e.fadeOutInput.value) : 0,
       pan: parseFloat(e.panInput.value),
@@ -595,6 +718,49 @@ textarea{
       repeat: e.repeatInput ? e.repeatInput.checked : false,
       gapMs: e.gapInput ? parseFloat(e.gapInput.value) : 0
     };
+  }
+
+  // Copy-B layers (dynamicDelayFrom set) get their Start Delay auto-set to
+  // half of Copy A's real decoded duration once it's known - that's the
+  // offset that puts B mid-loop whenever A hits its seam, and vice versa.
+  // Runs once after initial load and again on "Reset to Site Defaults" so
+  // both paths land on the real duration instead of the static fallback
+  // number baked into `defaults`.
+  function applyDynamicDelays() {
+    LAYERS.forEach(function(layer) {
+      if (!layer.dynamicDelayFrom) return;
+      const buf = buffers[layer.dynamicDelayFrom];
+      if (!buf) return;
+      const e = els[layer.id];
+      const step = parseFloat(e.delayInput.step) || 50;
+      const max = parseFloat(e.delayInput.max);
+      let halfMs = Math.round((buf.duration * 1000 / 2) / step) * step;
+      halfMs = Math.min(max, Math.max(0, halfMs));
+      setInputValue(e.delayInput, halfMs, 'ms');
+    });
+    drawTimeline();
+  }
+
+  // hasLoopRegion layers (ignition-tail) get their Loop End auto-set to
+  // ~1s before the real decoded duration once it's known - a starting
+  // guess that trims off the tail's natural decay-toward-silence before
+  // the native loop ever plays through it (see the loopEnd comment in
+  // startLayer). Runs once after initial load and again on "Reset to Site
+  // Defaults"; solo-preview and nudge by ear from there.
+  function applyDynamicLoopEnd() {
+    LAYERS.forEach(function(layer) {
+      if (!layer.hasLoopRegion) return;
+      const buf = buffers[layer.id];
+      if (!buf) return;
+      const e = els[layer.id];
+      const step = parseFloat(e.loopEndInput.step) || 50;
+      const max = parseFloat(e.loopEndInput.max);
+      const loopStartMs = parseFloat(e.loopStartInput.value);
+      let guessMs = Math.round((buf.duration * 1000 - 1000) / step) * step;
+      guessMs = Math.min(max, Math.max(loopStartMs + step, guessMs));
+      setInputValue(e.loopEndInput, guessMs, 'ms');
+    });
+    drawTimeline();
   }
 
   // ---- Loading ---------------------------------------------------------
@@ -615,8 +781,20 @@ textarea{
         loadStatusEl.textContent = 'Error loading ' + layer.file + ': ' + err.message;
       });
   })).then(function() {
-    loadStatusEl.textContent = LAYERS.length + ' sounds ready.';
     document.getElementById('playMix').disabled = false;
+    // A saved session takes priority over the auto-computed Copy A/B
+    // stagger - it already encodes whatever delay was in effect (auto or
+    // hand-tuned) the last time you touched this layer. Only fresh/reset
+    // state falls back to the auto calculation.
+    const savedSettings = loadSavedSettings();
+    if (savedSettings) {
+      applySettings(savedSettings);
+      loadStatusEl.textContent = LAYERS.length + ' sounds ready. (restored your saved settings)';
+    } else {
+      applyDynamicDelays();
+      applyDynamicLoopEnd();
+      loadStatusEl.textContent = LAYERS.length + ' sounds ready.';
+    }
     drawTimeline();
   });
 
@@ -626,6 +804,7 @@ textarea{
   masterVolInput.addEventListener('input', function() {
     masterVolOut.textContent = masterVolInput.value + '%';
     if (masterGain) masterGain.gain.value = parseFloat(masterVolInput.value) / 100;
+    saveSettings();
   });
 
   function stopLayer(e) {
@@ -770,9 +949,19 @@ textarea{
         // actually starts sounding, so ctx.currentTime can briefly be
         // earlier than its startedAt - without the clamp that shows as a
         // negative time for a moment instead of just "hasn't begun yet."
-        const pos = Math.max(0, (ctx.currentTime - e.node.startedAt) * e.node.rate);
+        const elapsedSinceStart = Math.max(0, (ctx.currentTime - e.node.startedAt) * e.node.rate);
         const dur = e.node.buffer.duration;
-        const posWrapped = e.node.source.loop ? (pos % dur) : Math.min(pos, dur);
+        const loopStartSec = e.node.loopStartSec || 0;
+        const rawPos = loopStartSec + elapsedSinceStart;
+        let posWrapped;
+        if (!e.node.source.loop) {
+          posWrapped = Math.min(rawPos, dur);
+        } else if (rawPos >= dur) {
+          const loopRegionLen = Math.max(0.001, dur - loopStartSec);
+          posWrapped = loopStartSec + ((rawPos - loopStartSec) % loopRegionLen);
+        } else {
+          posWrapped = rawPos;
+        }
         const remaining = Math.max(0, dur - posWrapped);
         e.statusEl.textContent =
           formatTime(posWrapped) + ' / ' + formatTime(dur) + '  ·  ' + formatTime(remaining) + ' left';
@@ -826,6 +1015,33 @@ textarea{
     return maxEnd + 2000;
   }
 
+  // Shared by drawTimeline() (rendering) and the drag handlers below (hit
+  // testing) so both agree exactly on where a layer's block sits - x0/wPx
+  // are unclamped canvas-space pixels, matching the original inline math.
+  function layerBlockRect(layer, W, windowMs) {
+    const e = els[layer.id];
+    const delay = parseFloat(e.delayInput.value);
+    const fadeIn = parseFloat(e.fadeInInput.value);
+    const x0 = (delay / windowMs) * W;
+
+    let widthMs, continues = false;
+    if (layer.hasHold) {
+      const fullHold = parseFloat(e.holdInput.value);
+      if (layer.holdMax && fullHold > WINDOW_HOLD_CAP_MS) {
+        widthMs = fadeIn + WINDOW_HOLD_CAP_MS;
+        continues = true;
+      } else {
+        widthMs = fadeIn + fullHold + parseFloat(e.fadeOutInput.value);
+      }
+    } else {
+      const dur = (buffers[layer.id] ? buffers[layer.id].duration * 1000 : 4000);
+      widthMs = fadeIn + Math.min(dur, 6000);
+      continues = layer.loop;
+    }
+    const wPx = Math.max((widthMs / windowMs) * W, 3);
+    return { x0: x0, wPx: wPx, continues: continues };
+  }
+
   function drawTimeline() {
     const W = timelineCanvas.clientWidth, H = timelineCanvas.clientHeight;
     if (!W || !H) return;
@@ -850,27 +1066,10 @@ textarea{
     const rowH = H / LAYERS.length;
     LAYERS.forEach(function(layer, i) {
       const e = els[layer.id];
-      const delay = parseFloat(e.delayInput.value);
-      const fadeIn = parseFloat(e.fadeInInput.value);
       const y = i * rowH + 3;
       const barH = rowH - 6;
-      const x0 = (delay / windowMs) * W;
-
-      let widthMs, continues = false;
-      if (layer.hasHold) {
-        const fullHold = parseFloat(e.holdInput.value);
-        if (layer.holdMax && fullHold > WINDOW_HOLD_CAP_MS) {
-          widthMs = fadeIn + WINDOW_HOLD_CAP_MS;
-          continues = true;
-        } else {
-          widthMs = fadeIn + fullHold + parseFloat(e.fadeOutInput.value);
-        }
-      } else {
-        const dur = (buffers[layer.id] ? buffers[layer.id].duration * 1000 : 4000);
-        widthMs = fadeIn + Math.min(dur, 6000);
-        continues = layer.loop;
-      }
-      const wPx = Math.max((widthMs / windowMs) * W, 3);
+      const rect = layerBlockRect(layer, W, windowMs);
+      const x0 = rect.x0, wPx = rect.wPx, continues = rect.continues;
 
       g.fillStyle = layer.color + (continues ? '99' : 'CC');
       g.fillRect(x0, y, Math.min(wPx, W - x0), barH);
@@ -928,6 +1127,75 @@ textarea{
 
   window.addEventListener('resize', drawTimeline);
 
+  // ---- Drag a timeline block to reposition it (Start Delay) --------------
+  // Click-drag any layer's colored block left/right on the timeline; it
+  // drives that layer's Start Delay slider live instead of typing a
+  // number. windowMs/W are captured once at drag-start (not recomputed
+  // every move) so the pixel scale stays stable through the drag - if it
+  // updated live, moving a block would change the window width, which
+  // would change the scale, which would fight the very drag causing it.
+  timelineCanvas.style.cursor = 'grab';
+  let dragInfo = null;
+
+  function findLayerBlockAt(mx, my, W, H) {
+    const rowH = H / LAYERS.length;
+    const rowIndex = Math.floor(my / rowH);
+    if (rowIndex < 0 || rowIndex >= LAYERS.length) return null;
+    const layer = LAYERS[rowIndex];
+    const windowMs = timelineWindowMs();
+    const rect = layerBlockRect(layer, W, windowMs);
+    const grabSlack = 6; // px - makes thin/short blocks easier to grab
+    if (mx >= rect.x0 - grabSlack && mx <= rect.x0 + rect.wPx + grabSlack) {
+      return { layer: layer, rect: rect, windowMs: windowMs };
+    }
+    return null;
+  }
+
+  function canvasPoint(ev) {
+    const box = timelineCanvas.getBoundingClientRect();
+    const point = ev.touches ? ev.touches[0] : ev;
+    return { x: point.clientX - box.left, y: point.clientY - box.top };
+  }
+
+  function beginDrag(ev) {
+    const W = timelineCanvas.clientWidth, H = timelineCanvas.clientHeight;
+    const p = canvasPoint(ev);
+    const hit = findLayerBlockAt(p.x, p.y, W, H);
+    if (!hit) return;
+    dragInfo = { layer: hit.layer, grabOffsetPx: p.x - hit.rect.x0, windowMs: hit.windowMs, W: W };
+    timelineCanvas.style.cursor = 'grabbing';
+    ev.preventDefault();
+  }
+
+  function updateDrag(ev) {
+    if (!dragInfo) return;
+    const p = canvasPoint(ev);
+    const newX0 = p.x - dragInfo.grabOffsetPx;
+    const input = els[dragInfo.layer.id].delayInput;
+    const min = parseFloat(input.min), max = parseFloat(input.max), step = parseFloat(input.step) || 50;
+    let newDelayMs = (newX0 / dragInfo.W) * dragInfo.windowMs;
+    newDelayMs = Math.round(newDelayMs / step) * step;
+    newDelayMs = Math.min(max, Math.max(min, newDelayMs));
+    setInputValue(input, newDelayMs, 'ms');
+    drawTimeline();
+    saveSettings();
+    ev.preventDefault();
+  }
+
+  function endDrag() {
+    if (!dragInfo) return;
+    dragInfo = null;
+    timelineCanvas.style.cursor = 'grab';
+    drawTimeline();
+  }
+
+  timelineCanvas.addEventListener('mousedown', beginDrag);
+  window.addEventListener('mousemove', updateDrag);
+  window.addEventListener('mouseup', endDrag);
+  timelineCanvas.addEventListener('touchstart', beginDrag, { passive: false });
+  timelineCanvas.addEventListener('touchmove', updateDrag, { passive: false });
+  timelineCanvas.addEventListener('touchend', endDrag);
+
   // ---- Reset to current site defaults -------------------------------------
   function setInputValue(input, value, unit) {
     input.value = value;
@@ -940,6 +1208,10 @@ textarea{
       setInputValue(e.volumeInput, layer.defaults.volume, '%');
       setInputValue(e.delayInput, layer.defaults.delayMs, 'ms');
       setInputValue(e.fadeInInput, layer.defaults.fadeInMs, 'ms');
+      if (layer.hasLoopRegion) {
+        setInputValue(e.loopStartInput, layer.defaults.loopStartMs, 'ms');
+        setInputValue(e.loopEndInput, layer.defaults.loopEndMs, 'ms');
+      }
       if (layer.hasHold) {
         setInputValue(e.holdInput, layer.defaults.holdMs, 'ms');
         setInputValue(e.fadeOutInput, layer.defaults.fadeOutMs, 'ms');
@@ -954,6 +1226,9 @@ textarea{
         setInputValue(e.gapInput, layer.defaults.gapMs, 'ms');
       }
     });
+    clearSavedSettings();
+    applyDynamicDelays();
+    applyDynamicLoopEnd();
     drawTimeline();
   }
   document.getElementById('loadDefaults').addEventListener('click', loadDefaults);
@@ -964,6 +1239,7 @@ textarea{
     LAYERS.forEach(function(layer) {
       const e = els[layer.id];
       const entry = readParams(e);
+      if (!layer.hasLoopRegion) { delete entry.loopStartMs; delete entry.loopEndMs; }
       if (!layer.hasHold) { delete entry.holdMs; delete entry.fadeOutMs; }
       if (!layer.canRepeat) { delete entry.repeat; delete entry.gapMs; }
       out.layers[layer.id] = entry;
@@ -984,6 +1260,10 @@ textarea{
       if (saved.volume != null) setInputValue(e.volumeInput, saved.volume, '%');
       if (saved.delayMs != null) setInputValue(e.delayInput, saved.delayMs, 'ms');
       if (saved.fadeInMs != null) setInputValue(e.fadeInInput, saved.fadeInMs, 'ms');
+      if (layer.hasLoopRegion) {
+        if (saved.loopStartMs != null) setInputValue(e.loopStartInput, saved.loopStartMs, 'ms');
+        if (saved.loopEndMs != null) setInputValue(e.loopEndInput, saved.loopEndMs, 'ms');
+      }
       if (layer.hasHold) {
         if (saved.holdMs != null) setInputValue(e.holdInput, saved.holdMs, 'ms');
         if (saved.fadeOutMs != null) setInputValue(e.fadeOutInput, saved.fadeOutMs, 'ms');
@@ -999,6 +1279,7 @@ textarea{
       }
     });
     drawTimeline();
+    saveSettings();
   }
 
   const jsonBox = document.getElementById('jsonBox');

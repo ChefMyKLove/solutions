@@ -1,0 +1,965 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sound Lab (Final) — Stockpot Boil Mixer</title>
+<!--
+  Dev tool, not part of the public site. Unlike sound-lab.html (one panel
+  per individual audio file), this shows just two "pots": Bubbles (the
+  whole Base/Beans/Water texture from sound-lab-bubbles.json, six files
+  layered together) and Ignition (the click + tail hiss from
+  sound-lab-ignition-gas.json, two files). Each pot is a single Volume
+  slider and a single Timing slider - the relative volume/pan/timing
+  between the files INSIDE a pot stays exactly as tuned in those two
+  exports (see RECIPES below); Volume scales the whole pot up/down
+  together, Timing shifts the whole pot earlier/later together. Export
+  produces a normal per-file JSON (same shape sound-lab.html uses) with
+  every real value baked in, ready to hand off.
+-->
+<style>
+:root{
+  --bg: #14110D;
+  --panel: #1D1913;
+  --paper: #F7F3E9;
+  --ember: #B8452E;
+  --sage: #5C6B54;
+  --line: #34302A;
+  --muted: #9A9184;
+}
+*{ box-sizing:border-box; }
+body{
+  margin:0;
+  background: var(--bg);
+  color: var(--paper);
+  font-family:'Segoe UI', Arial, sans-serif;
+  padding: 12px 10px 40px;
+}
+h1{
+  font-size: 20px;
+  letter-spacing: 0.5px;
+  margin: 0 0 4px;
+  color: var(--ember);
+}
+.subhead{
+  color: var(--muted);
+  font-size: 13px;
+  max-width: 760px;
+  line-height: 1.5;
+  margin-bottom: 18px;
+}
+.loadstatus{
+  font-size: 12px;
+  color: var(--sage);
+  margin-bottom: 18px;
+  font-family:'Consolas','Menlo',monospace;
+}
+.transport{
+  background: rgba(20,17,13,0.96);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 7px 8px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 20px;
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  backdrop-filter: blur(4px);
+}
+button{
+  font-family: inherit;
+  font-size: 13px;
+  cursor: pointer;
+  border-radius: 6px;
+  border: 1px solid var(--line);
+  background: #262019;
+  color: var(--paper);
+  padding: 4px 7px;
+}
+button:hover{ border-color: var(--ember); }
+button:disabled{ opacity: 0.4; cursor: default; }
+button:disabled:hover{ border-color: var(--line); }
+button.primary{ background: var(--ember); border-color: var(--ember); color: #fff; font-weight: 600; }
+button.primary:hover{ opacity:0.9; }
+button.small{ padding: 1.5px 4px; font-size: 11px; border-radius: 5px; }
+.transport .now-playing{ font-size: 12px; color: var(--paper); font-weight: 600; }
+.transport .elapsed{
+  font-family:'Consolas','Menlo',monospace;
+  font-size: 13px;
+  color: var(--muted);
+  min-width: 70px;
+}
+.transport label{ font-size: 12px; color: var(--muted); display:flex; align-items:center; gap:6px; }
+.transport input[type=range]{ width: 100px; }
+
+.timeline-wrap{
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 8px 10px;
+  margin-bottom: 20px;
+}
+.timeline-wrap .cap{
+  font-size: 11px;
+  color: var(--muted);
+  margin-bottom: 6px;
+  display:flex;
+  justify-content: space-between;
+}
+#timeline{
+  display:block;
+  width: 100%;
+  height: 100px;
+  border-radius: 6px;
+  background: #100D09;
+  cursor: grab;
+}
+
+.pot{
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 16px 18px;
+  margin-bottom: 16px;
+}
+.pot-head{
+  display:flex;
+  align-items:baseline;
+  justify-content:space-between;
+  flex-wrap:wrap;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+.pot-head .swatch{
+  display:inline-block;
+  width: 10px; height: 10px;
+  border-radius: 2px;
+  margin-right: 8px;
+}
+.pot-head .name{ font-weight:700; font-size: 16px; }
+.pot-head .files{
+  font-family:'Consolas','Menlo',monospace;
+  font-size: 11px;
+  color: var(--muted);
+}
+.pot-controls{
+  display:grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 16px 20px;
+}
+.field{ display:flex; flex-direction:column; gap: 6px; }
+.field label{ font-size: 12px; color: var(--muted); letter-spacing:0.3px; }
+.field .row{ display:flex; align-items:center; gap:10px; }
+.field input[type=range]{ flex:1; height: 22px; }
+.readout{
+  font-family:'Consolas','Menlo',monospace;
+  font-size: 12px;
+  color: var(--sage);
+  min-width: 54px;
+  text-align:right;
+}
+.livebar{
+  height: 5px;
+  border-radius: 2px;
+  background: #100D09;
+  overflow:hidden;
+  margin-top: 14px;
+}
+.livebar > i{
+  display:block;
+  height:100%;
+  width:0%;
+  background: var(--ember);
+  transition: width 80ms linear;
+}
+.pot-foot{
+  margin-top: 12px;
+  display:flex;
+  align-items:center;
+  gap: 10px;
+}
+.track-status{
+  font-family:'Consolas','Menlo',monospace;
+  font-size: 11px;
+  color: var(--sage);
+}
+
+.io{
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 8px;
+  margin-top: 24px;
+}
+.io h2{ font-size:14px; margin:0 0 10px; color: var(--ember); }
+.io .row{ display:flex; flex-wrap:wrap; gap:10px; margin-bottom: 10px; align-items:center; }
+textarea{
+  width:100%;
+  min-height: 220px;
+  background: #100D09;
+  color: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  font-family:'Consolas','Menlo',monospace;
+  font-size: 12px;
+  padding: 5px;
+}
+.hint{ font-size: 11px; color: var(--muted); margin-top: 4px; }
+</style>
+</head>
+<body>
+
+<h1>Sound Lab (Final) — Stockpot Boil Mixer</h1>
+<p class="subhead">
+  Two pots, not nine layers: <strong>Bubbles</strong> (Base/Beans/Water, six files) and
+  <strong>Ignition</strong> (click + tail hiss, two files), each baked from your tuned exports
+  (<code>sound-lab-bubbles.json</code> / <code>sound-lab-ignition-gas.json</code>). The relative
+  balance/timing/pan inside each pot is locked exactly as tuned - Volume scales that whole pot up
+  or down, Timing shifts it earlier or later, as one block. Every change saves automatically until
+  you hit Reset. Export when it's the one you want to ship.
+</p>
+<div class="loadstatus" id="loadStatus">Loading sounds…</div>
+
+<div class="transport">
+  <button type="button" class="primary" id="playMix" disabled>&#9654; Play Full Mix From Start</button>
+  <button type="button" id="stopAll">&#9632; Stop All</button>
+  <span class="elapsed" id="elapsed">0.0s</span>
+  <span class="now-playing" id="nowPlaying">Idle</span>
+  <label>Master Vol
+    <input type="range" id="masterVol" min="0" max="150" value="100">
+    <span class="readout" id="masterVolReadout">100%</span>
+  </label>
+  <button type="button" class="small" id="resetBtn">Reset to Starting Mix</button>
+</div>
+
+<div class="timeline-wrap">
+  <div class="cap"><span>Timeline - drag a pot's block to shift when it comes in (same as its Timing slider)</span><span id="timelineWindowLabel"></span></div>
+  <canvas id="timeline"></canvas>
+</div>
+
+<div id="pots"></div>
+
+<div class="io">
+  <h2>Export / Import</h2>
+  <div class="row">
+    <button type="button" id="exportBtn">Export Settings (JSON)</button>
+    <button type="button" id="downloadBtn">Download as File</button>
+    <button type="button" id="copyBtn">Copy to Clipboard</button>
+    <label style="font-size:12px;color:var(--muted)">
+      Load a file: <input type="file" id="importFile" accept="application/json">
+    </label>
+  </div>
+  <textarea id="jsonBox" placeholder="Exported settings appear here (same per-file shape sound-lab.html uses). You can also paste one in and click Apply."></textarea>
+  <div class="row">
+    <button type="button" id="applyBtn">Apply JSON Above</button>
+    <span class="hint" id="ioStatus"></span>
+  </div>
+</div>
+
+<script>
+  // ---- Baked recipes -------------------------------------------------------
+  // Each pot's sub-layers, exactly as tuned in the two source exports -
+  // volume/pan/pitch/reverb/decay/warmth/hold/fadeOut/gap/repeat here are
+  // NOT exposed as controls; only each pot's overall Volume (multiplies
+  // every sub-layer's volume together) and Timing (adds to every
+  // sub-layer's Start Delay together) are. That's what keeps the internal
+  // balance/stagger intact while still letting the two pots be nudged
+  // against each other.
+  const POTS = [
+    {
+      id: 'bubbles', label: 'Bubbles', color: '#5C6B54',
+      files: 'sfx-bubbling-base.mp3, sfx-bubbling-beans.mp3, sfx-bubbling-water.mp3 (x2 each)',
+      subLayers: [
+        { id: 'base-a', file: 'assets/sfx-bubbling-base.mp3', loop: true, volume: 60, delayMs: 2200, fadeInMs: 1200, holdMs: 3600000, fadeOutMs: 3000, pan: -8, pitch: 0, reverb: 9, decay: 39, warmth: 20000, repeat: true, gapMs: 22500 },
+        { id: 'base-b', file: 'assets/sfx-bubbling-base.mp3', loop: true, volume: 47, delayMs: 4800, fadeInMs: 1200, holdMs: 3600000, fadeOutMs: 3400, pan: 8, pitch: 0, reverb: 0, decay: 55, warmth: 20000, repeat: true, gapMs: 5000 },
+        { id: 'beans-a', file: 'assets/sfx-bubbling-beans.mp3', loop: true, volume: 21, delayMs: 17400, fadeInMs: 1500, holdMs: 3600000, fadeOutMs: 3700, pan: -49, pitch: 0, reverb: 0, decay: 55, warmth: 20000, repeat: true, gapMs: 20500 },
+        { id: 'beans-b', file: 'assets/sfx-bubbling-beans.mp3', loop: true, volume: 25, delayMs: 18100, fadeInMs: 1500, holdMs: 3600000, fadeOutMs: 3400, pan: 76, pitch: 0, reverb: 0, decay: 55, warmth: 20000, repeat: true, gapMs: 21500 },
+        { id: 'water-a', file: 'assets/sfx-bubbling-water.mp3', loop: true, volume: 23, delayMs: 31700, fadeInMs: 1500, holdMs: 3600000, fadeOutMs: 2300, pan: -68, pitch: 0, reverb: 8, decay: 55, warmth: 20000, repeat: true, gapMs: 30000 },
+        { id: 'water-b', file: 'assets/sfx-bubbling-water.mp3', loop: true, volume: 19, delayMs: 40000, fadeInMs: 1500, holdMs: 3600000, fadeOutMs: 2200, pan: 67, pitch: 0, reverb: 8, decay: 55, warmth: 20000, repeat: true, gapMs: 30000 }
+      ]
+    },
+    {
+      id: 'ignition', label: 'Ignition', color: '#B8452E',
+      files: 'sfx-ignition.mp3 (click, one-shot) + sfx-ignition.mp3 (tail hiss, loops)',
+      subLayers: [
+        { id: 'ignition', file: 'assets/sfx-ignition.mp3', loop: false, volume: 100, delayMs: 0, fadeInMs: 0, pan: 0, pitch: 0, reverb: 0, decay: 55, warmth: 20000, repeat: false, gapMs: 4000 },
+        { id: 'ignition-tail', file: 'assets/sfx-ignition.mp3', loop: true, hasLoopRegion: true, volume: 101, delayMs: 0, fadeInMs: 0, loopStartMs: 2500, loopEndMs: 8000, holdMs: 3600000, fadeOutMs: 0, pan: 0, pitch: 0, reverb: 0, decay: 55, warmth: 20000, repeat: true, gapMs: 0 }
+      ]
+    }
+  ];
+  // Every layer id the exported JSON needs to carry for schema parity with
+  // sound-lab.html / index.html, even ones this tool doesn't touch (gas
+  // stayed muted in both source exports - it starts muted here too and
+  // this tool never turns it back on).
+  const SILENT_LAYERS = {
+    gas: { volume: 0, delayMs: 450, fadeInMs: 900, holdMs: 3600000, fadeOutMs: 1000, pan: 0, pitch: 0, reverb: 0, decay: 55, warmth: 20000, repeat: false, gapMs: 2000 }
+  };
+  const POT_DEFAULTS = { volumePct: 100, timingMs: 0 };
+
+  // ---- Web Audio setup -----------------------------------------------------
+  let ctx = null;
+  let masterGain = null;
+  function audioCtx() {
+    if (!ctx) {
+      ctx = new (window.AudioContext || window.webkitAudioContext)();
+      masterGain = ctx.createGain();
+      masterGain.gain.value = parseFloat(document.getElementById('masterVol').value) / 100;
+      masterGain.connect(ctx.destination);
+    }
+    if (ctx.state === 'suspended') ctx.resume();
+    return ctx;
+  }
+
+  const buffers = {};    // file path -> decoded AudioBuffer
+  const potEls = {};     // pot id -> control/UI refs
+  const subState = {};   // sub-layer id -> runtime playback state
+  let mixTimers = [];
+  let mixStartTime = null;
+  let soloActiveId = null; // pot id currently soloed, or null
+
+  function buildEffectsGraph(params) {
+    const c = audioCtx();
+    const gain = c.createGain();
+    const filter = c.createBiquadFilter();
+    filter.type = 'lowpass';
+    filter.frequency.value = params.warmth;
+    filter.Q.value = 0.7;
+
+    const revAmt = params.reverb / 100;
+    let inputNode = filter;
+    if (revAmt > 0.01) {
+      const decV = Math.min(params.decay / 100, 0.92);
+      const delT = revAmt * 0.32;
+      const del = c.createDelay(2.5);
+      const fbg = c.createGain();
+      const dryG = c.createGain();
+      const wetG = c.createGain();
+      del.delayTime.value = delT;
+      fbg.gain.value = decV;
+      dryG.gain.value = 1 - revAmt * 0.45;
+      wetG.gain.value = revAmt * 0.55;
+      filter.connect(dryG); filter.connect(del);
+      del.connect(fbg); fbg.connect(del); del.connect(wetG);
+      dryG.connect(gain); wetG.connect(gain);
+    } else {
+      filter.connect(gain);
+    }
+
+    const panV = params.pan / 100;
+    if (Math.abs(panV) > 0.01) {
+      const panner = c.createStereoPanner();
+      panner.pan.value = panV;
+      gain.connect(panner);
+      panner.connect(masterGain);
+    } else {
+      gain.connect(masterGain);
+    }
+    return { inputNode: inputNode, gain: gain };
+  }
+
+  // startAt/effectiveVolume/effectiveDelay are computed by the caller
+  // (runSubLayerCycle) from the pot's Volume/Timing knobs - everything
+  // else here is the sub-layer's baked recipe, untouched.
+  function startSubLayer(sub, effectiveVolume, startAt) {
+    const c = audioCtx();
+    const buffer = buffers[sub.file];
+    if (!buffer) return null;
+
+    const rate = Math.pow(2, sub.pitch / 12);
+    const src = c.createBufferSource();
+    src.buffer = buffer;
+    src.playbackRate.value = rate;
+    src.loop = sub.loop;
+
+    let loopStartSec = 0;
+    if (sub.hasLoopRegion && sub.loopStartMs != null) {
+      loopStartSec = Math.min(sub.loopStartMs / 1000, Math.max(0, buffer.duration - 0.05));
+      let loopEndSec = sub.loopEndMs != null ? sub.loopEndMs / 1000 : buffer.duration;
+      loopEndSec = Math.min(loopEndSec, buffer.duration);
+      loopEndSec = Math.max(loopEndSec, loopStartSec + 0.05);
+      src.loopStart = loopStartSec;
+      src.loopEnd = loopEndSec;
+    }
+
+    const graph = buildEffectsGraph(sub);
+    src.connect(graph.inputNode);
+    graph.gain.gain.setValueAtTime(0, startAt);
+
+    const nodeObj = { source: src, gain: graph.gain, startedAt: startAt, buffer: buffer, rate: rate, loopStartSec: loopStartSec, subId: sub.id };
+    src.onended = function() {
+      if (subState[sub.id] && subState[sub.id].node === nodeObj) {
+        subState[sub.id].isPlaying = false;
+        subState[sub.id].node = null;
+      }
+    };
+    src.start(startAt, loopStartSec);
+    return nodeObj;
+  }
+
+  function rampTo(gainNode, targetVol, fromTime, durationMs) {
+    const c = audioCtx();
+    const now = Math.max(fromTime, c.currentTime);
+    gainNode.gain.cancelScheduledValues(now);
+    gainNode.gain.setValueAtTime(gainNode.gain.value, now);
+    if (durationMs <= 0) {
+      gainNode.gain.setValueAtTime(targetVol, now);
+    } else {
+      gainNode.gain.linearRampToValueAtTime(targetVol, now + durationMs / 1000);
+    }
+  }
+
+  const CYCLE_LOOKAHEAD_MS = 200;
+
+  // One play-cycle for a sub-layer, at the pot's CURRENT Volume/Timing
+  // knobs (re-read fresh every cycle, same as the full mixer, so mid-
+  // playback tweaks apply to the next repeat without a restart).
+  function runSubLayerCycle(pot, sub, startAt) {
+    const potVolumePct = parseFloat(potEls[pot.id].volumeInput.value);
+    const effectiveVolume = (sub.volume / 100) * (potVolumePct / 100);
+    const c = audioCtx();
+    if (startAt == null || startAt < c.currentTime) startAt = c.currentTime;
+
+    const node = startSubLayer(sub, effectiveVolume, startAt);
+    if (!node) return;
+    subState[sub.id] = subState[sub.id] || {};
+    subState[sub.id].node = node;
+    subState[sub.id].isPlaying = true;
+
+    if (sub.fadeInMs > 0) {
+      node.gain.gain.linearRampToValueAtTime(effectiveVolume, startAt + sub.fadeInMs / 1000);
+    } else {
+      node.gain.gain.setValueAtTime(effectiveVolume, startAt);
+    }
+
+    let cycleEndAt;
+    const holdEndAt = startAt + (sub.fadeInMs + sub.holdMs) / 1000;
+    cycleEndAt = holdEndAt + sub.fadeOutMs / 1000;
+    if (sub.fadeOutMs > 0) {
+      node.gain.gain.setValueAtTime(effectiveVolume, holdEndAt);
+      node.gain.gain.linearRampToValueAtTime(0, cycleEndAt);
+    }
+    node.source.stop(cycleEndAt);
+
+    if (sub.repeat) {
+      const nextStartAt = cycleEndAt + sub.gapMs / 1000;
+      const msUntilPrepare = Math.max(0, (cycleEndAt - c.currentTime) * 1000 - CYCLE_LOOKAHEAD_MS);
+      const t = setTimeout(function() { runSubLayerCycle(pot, sub, nextStartAt); }, msUntilPrepare);
+      mixTimers.push(t);
+    }
+  }
+
+  function playPot(pot) {
+    const potTimingMs = parseFloat(potEls[pot.id].timingInput.value);
+    pot.subLayers.forEach(function(sub) {
+      const delayMs = Math.max(0, sub.delayMs + potTimingMs);
+      const t = setTimeout(function() { runSubLayerCycle(pot, sub); }, delayMs);
+      mixTimers.push(t);
+    });
+  }
+
+  function playFullMix() {
+    stopAll();
+    mixStartTime = performance.now();
+    soloActiveId = null;
+    POTS.forEach(function(pot) { playPot(pot); });
+  }
+
+  function stopAll() {
+    mixTimers.forEach(function(t) { clearTimeout(t); });
+    mixTimers = [];
+    mixStartTime = null;
+    document.getElementById('elapsed').textContent = '0.0s';
+    Object.keys(subState).forEach(function(id) {
+      const st = subState[id];
+      if (st.node) {
+        try { st.node.source.stop(0); } catch (err) { /* already stopped */ }
+        st.node = null;
+      }
+      st.isPlaying = false;
+    });
+    POTS.forEach(function(pot) {
+      potEls[pot.id].soloBtn.textContent = '▶ Preview this pot alone';
+      potEls[pot.id].bar.style.width = '0%';
+    });
+    soloActiveId = null;
+    document.getElementById('nowPlaying').textContent = 'Idle';
+  }
+
+  document.getElementById('playMix').addEventListener('click', playFullMix);
+  document.getElementById('stopAll').addEventListener('click', stopAll);
+
+  // ---- Master transport --------------------------------------------------
+  const masterVolInput = document.getElementById('masterVol');
+  const masterVolOut = document.getElementById('masterVolReadout');
+  masterVolInput.addEventListener('input', function() {
+    masterVolOut.textContent = masterVolInput.value + '%';
+    if (masterGain) masterGain.gain.value = parseFloat(masterVolInput.value) / 100;
+    saveSettings();
+  });
+
+  // ---- Live status ticker --------------------------------------------------
+  function formatTime(seconds) {
+    if (!isFinite(seconds) || seconds < 0) seconds = 0;
+    const m = Math.floor(seconds / 60);
+    const s = Math.floor(seconds % 60);
+    return m + ':' + (s < 10 ? '0' : '') + s;
+  }
+
+  setInterval(function() {
+    if (!ctx) return;
+    if (mixStartTime !== null) {
+      const elapsedMs = performance.now() - mixStartTime;
+      document.getElementById('elapsed').textContent = (elapsedMs / 1000).toFixed(1) + 's';
+    }
+    const playingPotLabels = [];
+    POTS.forEach(function(pot) {
+      const e = potEls[pot.id];
+      let anyPlaying = false;
+      let barPct = 0;
+      pot.subLayers.forEach(function(sub) {
+        const st = subState[sub.id];
+        if (st && st.isPlaying && st.node) {
+          anyPlaying = true;
+          const master = parseFloat(masterVolInput.value) / 100;
+          const targetish = st.node.gain.gain.value;
+          barPct = Math.max(barPct, Math.round((targetish * 100) / Math.max(master, 0.0001)));
+        }
+      });
+      e.bar.style.width = Math.min(barPct, 100) + '%';
+      if (anyPlaying) playingPotLabels.push(pot.label);
+    });
+    const nowPlayingEl = document.getElementById('nowPlaying');
+    if (soloActiveId) {
+      nowPlayingEl.textContent = 'Previewing: ' + POTS.find(function(p) { return p.id === soloActiveId; }).label;
+    } else if (playingPotLabels.length) {
+      nowPlayingEl.textContent = 'Playing: ' + playingPotLabels.join(', ');
+    } else {
+      nowPlayingEl.textContent = 'Idle';
+    }
+    // Full redraw (not just the playhead) - the playhead draw doesn't
+    // clear the canvas on its own, so calling it alone every tick would
+    // leave a trail of lines instead of one moving line.
+    if (mixStartTime !== null) drawTimeline();
+  }, 150);
+
+  // ---- Timeline canvas -----------------------------------------------------
+  // Fixed window (not dynamically sized to content, unlike sound-lab.html's
+  // timeline) - the Timing slider's own -5000..20000ms range is the thing
+  // that matters here, not the full ~40s internal cascade inside Bubbles
+  // (that detail is exactly what got collapsed away into one pot).
+  const TIMELINE_WINDOW_MS = 25000;
+  const timelineCanvas = document.getElementById('timeline');
+
+  // Each pot draws as one block: x0 is where it starts (earliest sub-
+  // layer's baked delay, plus the pot's Timing offset), width is a small
+  // representative "attack" (that pot's first fade-in) with a fading
+  // "continues" tail after it - accurate to how these are voiced (start,
+  // then hold effectively forever via the 1hr Hold baked into every sub-
+  // layer), not a literal render of the internal per-file stagger.
+  function potBlockRect(pot, W) {
+    const e = potEls[pot.id];
+    const anchorDelayMs = Math.min.apply(null, pot.subLayers.map(function(s) { return s.delayMs; }));
+    const timingMs = parseFloat(e.timingInput.value);
+    const startMs = Math.max(0, anchorDelayMs + timingMs);
+    const attackMs = pot.subLayers[0].fadeInMs || 1000;
+    const x0 = (startMs / TIMELINE_WINDOW_MS) * W;
+    const wPx = Math.max((attackMs / TIMELINE_WINDOW_MS) * W, 4);
+    return { x0: x0, wPx: wPx, startMs: startMs };
+  }
+
+  function drawTimeline() {
+    const W = timelineCanvas.clientWidth, H = timelineCanvas.clientHeight;
+    if (!W || !H) return;
+    timelineCanvas.width = W; timelineCanvas.height = H;
+    const g = timelineCanvas.getContext('2d');
+    document.getElementById('timelineWindowLabel').textContent = (TIMELINE_WINDOW_MS / 1000).toFixed(0) + 's window';
+    g.clearRect(0, 0, W, H);
+
+    g.strokeStyle = 'rgba(200,169,106,0.10)';
+    g.fillStyle = 'rgba(200,169,106,0.35)';
+    g.font = '9px Consolas, monospace';
+    g.lineWidth = 1;
+    for (let t = 0; t * 1000 <= TIMELINE_WINDOW_MS; t += 5) {
+      const x = (t * 1000 / TIMELINE_WINDOW_MS) * W;
+      g.beginPath(); g.moveTo(x, 0); g.lineTo(x, H); g.stroke();
+      if (t > 0) g.fillText(t + 's', x + 2, H - 3);
+    }
+
+    const rowH = H / POTS.length;
+    POTS.forEach(function(pot, i) {
+      const y = i * rowH + 4;
+      const barH = rowH - 8;
+      const rect = potBlockRect(pot, W);
+
+      g.fillStyle = pot.color + 'CC';
+      g.fillRect(rect.x0, y, Math.min(rect.wPx, W - rect.x0), barH);
+
+      if (rect.x0 + rect.wPx < W) {
+        const grad = g.createLinearGradient(rect.x0 + rect.wPx, 0, W, 0);
+        grad.addColorStop(0, pot.color + '99');
+        grad.addColorStop(1, pot.color + '15');
+        g.fillStyle = grad;
+        g.fillRect(rect.x0 + rect.wPx, y, W - (rect.x0 + rect.wPx), barH);
+      }
+
+      g.fillStyle = 'rgba(20,17,13,0.9)';
+      g.font = '10px Consolas, monospace';
+      g.fillText(pot.label, Math.max(rect.x0 + 6, 4), y + barH / 2 + 3);
+    });
+
+    drawTimelinePlayhead();
+  }
+
+  function drawTimelinePlayhead() {
+    const W = timelineCanvas.clientWidth, H = timelineCanvas.clientHeight;
+    if (!W || !H || mixStartTime === null) return;
+    const g = timelineCanvas.getContext('2d');
+    const elapsedMs = performance.now() - mixStartTime;
+    if (elapsedMs > TIMELINE_WINDOW_MS) return;
+    const x = (elapsedMs / TIMELINE_WINDOW_MS) * W;
+    g.save();
+    g.strokeStyle = 'rgba(255,210,110,0.85)';
+    g.lineWidth = 1.5;
+    g.beginPath(); g.moveTo(x, 0); g.lineTo(x, H); g.stroke();
+    g.restore();
+  }
+
+  window.addEventListener('resize', drawTimeline);
+
+  // ---- Drag a pot's block to reposition it (Timing) -----------------------
+  let dragInfo = null;
+
+  function findPotBlockAt(mx, my, W, H) {
+    const rowH = H / POTS.length;
+    const rowIndex = Math.floor(my / rowH);
+    if (rowIndex < 0 || rowIndex >= POTS.length) return null;
+    const pot = POTS[rowIndex];
+    const rect = potBlockRect(pot, W);
+    const grabSlack = 6;
+    if (mx >= rect.x0 - grabSlack && mx <= rect.x0 + rect.wPx + grabSlack) {
+      return { pot: pot, rect: rect };
+    }
+    return null;
+  }
+
+  function canvasPoint(ev) {
+    const box = timelineCanvas.getBoundingClientRect();
+    const point = ev.touches ? ev.touches[0] : ev;
+    return { x: point.clientX - box.left, y: point.clientY - box.top };
+  }
+
+  function beginDrag(ev) {
+    const W = timelineCanvas.clientWidth, H = timelineCanvas.clientHeight;
+    const p = canvasPoint(ev);
+    const hit = findPotBlockAt(p.x, p.y, W, H);
+    if (!hit) return;
+    dragInfo = { pot: hit.pot, grabOffsetPx: p.x - hit.rect.x0, W: W };
+    timelineCanvas.style.cursor = 'grabbing';
+    ev.preventDefault();
+  }
+
+  function updateDrag(ev) {
+    if (!dragInfo) return;
+    const p = canvasPoint(ev);
+    const newX0 = p.x - dragInfo.grabOffsetPx;
+    const anchorDelayMs = Math.min.apply(null, dragInfo.pot.subLayers.map(function(s) { return s.delayMs; }));
+    const input = potEls[dragInfo.pot.id].timingInput;
+    const min = parseFloat(input.min), max = parseFloat(input.max), step = parseFloat(input.step) || 100;
+    let newStartMs = (newX0 / dragInfo.W) * TIMELINE_WINDOW_MS;
+    let newTimingMs = Math.round((newStartMs - anchorDelayMs) / step) * step;
+    newTimingMs = Math.min(max, Math.max(min, newTimingMs));
+    setInputValue(input, newTimingMs, 'ms');
+    drawTimeline();
+    saveSettings();
+    ev.preventDefault();
+  }
+
+  function endDrag() {
+    if (!dragInfo) return;
+    dragInfo = null;
+    timelineCanvas.style.cursor = 'grab';
+    drawTimeline();
+  }
+
+  timelineCanvas.addEventListener('mousedown', beginDrag);
+  window.addEventListener('mousemove', updateDrag);
+  window.addEventListener('mouseup', endDrag);
+  timelineCanvas.addEventListener('touchstart', beginDrag, { passive: false });
+  timelineCanvas.addEventListener('touchmove', updateDrag, { passive: false });
+  timelineCanvas.addEventListener('touchend', endDrag);
+
+  // ---- Pot UI ---------------------------------------------------------
+  const potsRoot = document.getElementById('pots');
+
+  POTS.forEach(function(pot) {
+    const wrap = document.createElement('div');
+    wrap.className = 'pot';
+
+    const head = document.createElement('div');
+    head.className = 'pot-head';
+    head.innerHTML =
+      '<span><span class="swatch" style="background:' + pot.color + '"></span>' +
+      '<span class="name">' + pot.label + '</span></span>' +
+      '<span class="files">' + pot.files + '</span>';
+    wrap.appendChild(head);
+
+    const controls = document.createElement('div');
+    controls.className = 'pot-controls';
+
+    function makeField(labelText, key, min, max, step, value, unit) {
+      const field = document.createElement('div');
+      field.className = 'field';
+      const id = pot.id + '-' + key;
+      field.innerHTML =
+        '<label for="' + id + '">' + labelText + '</label>' +
+        '<div class="row">' +
+          '<input type="range" id="' + id + '" min="' + min + '" max="' + max + '" step="' + step + '" value="' + value + '">' +
+          '<span class="readout" id="' + id + '-out">' + value + unit + '</span>' +
+        '</div>';
+      controls.appendChild(field);
+      const input = field.querySelector('input');
+      const out = field.querySelector('.readout');
+      input.addEventListener('input', function() {
+        out.textContent = input.value + unit;
+        drawTimeline();
+        saveSettings();
+      });
+      return input;
+    }
+
+    const volumeInput = makeField('Volume (whole pot)', 'volume', 0, 150, 1, POT_DEFAULTS.volumePct, '%');
+    const timingInput = makeField('Timing (shifts whole pot earlier/later)', 'timing', -5000, 20000, 100, POT_DEFAULTS.timingMs, 'ms');
+    wrap.appendChild(controls);
+
+    const bar = document.createElement('div');
+    bar.className = 'livebar';
+    bar.innerHTML = '<i></i>';
+    wrap.appendChild(bar);
+
+    const foot = document.createElement('div');
+    foot.className = 'pot-foot';
+    const soloBtn = document.createElement('button');
+    soloBtn.type = 'button';
+    soloBtn.className = 'small';
+    soloBtn.textContent = '▶ Preview this pot alone';
+    soloBtn.disabled = true;
+    foot.appendChild(soloBtn);
+    wrap.appendChild(foot);
+
+    potsRoot.appendChild(wrap);
+    potEls[pot.id] = { pot: pot, volumeInput: volumeInput, timingInput: timingInput, bar: bar.querySelector('i'), soloBtn: soloBtn };
+
+    soloBtn.addEventListener('click', function() {
+      if (soloActiveId === pot.id) { stopAll(); return; }
+      stopAll();
+      soloActiveId = pot.id;
+      soloBtn.textContent = '■ Stop preview';
+      playPot(pot);
+    });
+  });
+
+  drawTimeline();
+
+  // ---- Loading ---------------------------------------------------------
+  const loadStatusEl = document.getElementById('loadStatus');
+  const uniqueFiles = Array.from(new Set(
+    POTS.reduce(function(acc, pot) { return acc.concat(pot.subLayers.map(function(s) { return s.file; })); }, [])
+  ));
+  let loadedCount = 0;
+  Promise.all(uniqueFiles.map(function(file) {
+    return fetch(file)
+      .then(function(r) { return r.arrayBuffer(); })
+      .then(function(ab) { return audioCtx().decodeAudioData(ab); })
+      .then(function(buf) {
+        buffers[file] = buf;
+        loadedCount++;
+        loadStatusEl.textContent = 'Loading sounds… ' + loadedCount + ' / ' + uniqueFiles.length;
+      })
+      .catch(function(err) {
+        loadStatusEl.textContent = 'Error loading ' + file + ': ' + err.message;
+      });
+  })).then(function() {
+    document.getElementById('playMix').disabled = false;
+    POTS.forEach(function(pot) { potEls[pot.id].soloBtn.disabled = false; });
+    const savedSettings = loadSavedSettings();
+    if (savedSettings) {
+      applySettings(savedSettings);
+      loadStatusEl.textContent = uniqueFiles.length + ' files ready. (restored your saved settings)';
+    } else {
+      loadStatusEl.textContent = uniqueFiles.length + ' files ready.';
+    }
+  });
+
+  // ---- Persistence -----------------------------------------------------
+  // Own localStorage key - separate from both sound-lab.html and the old
+  // per-file version of this file, so none of the three ever clobber each
+  // other's saved state.
+  const STORAGE_KEY = 'cmk-sound-lab-final-2pot-v1';
+  function saveSettings() {
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(getPotSettings())); } catch (err) { /* private mode etc. */ }
+  }
+  function loadSavedSettings() {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      return raw ? JSON.parse(raw) : null;
+    } catch (err) { return null; }
+  }
+  function clearSavedSettings() {
+    try { localStorage.removeItem(STORAGE_KEY); } catch (err) { /* ignore */ }
+  }
+
+  // Internal knob-only shape ({masterVolume, pots:{id:{volumePct,timingMs}}})
+  // - NOT the same shape as the exported per-file JSON below, which is the
+  // expanded/baked-out format sound-lab.html and index.html expect.
+  function getPotSettings() {
+    const out = { masterVolume: parseFloat(masterVolInput.value), pots: {} };
+    POTS.forEach(function(pot) {
+      const e = potEls[pot.id];
+      out.pots[pot.id] = { volumePct: parseFloat(e.volumeInput.value), timingMs: parseFloat(e.timingInput.value) };
+    });
+    return out;
+  }
+
+  function setInputValue(input, value, unit) {
+    input.value = value;
+    const out = document.getElementById(input.id + '-out');
+    if (out) out.textContent = value + unit;
+  }
+
+  function applySettings(json) {
+    if (json.masterVolume != null) {
+      masterVolInput.value = json.masterVolume;
+      masterVolOut.textContent = json.masterVolume + '%';
+      if (masterGain) masterGain.gain.value = json.masterVolume / 100;
+    }
+    POTS.forEach(function(pot) {
+      const saved = json.pots && json.pots[pot.id];
+      if (!saved) return;
+      const e = potEls[pot.id];
+      if (saved.volumePct != null) setInputValue(e.volumeInput, saved.volumePct, '%');
+      if (saved.timingMs != null) setInputValue(e.timingInput, saved.timingMs, 'ms');
+    });
+    drawTimeline();
+    saveSettings();
+  }
+
+  function resetToStartingMix() {
+    masterVolInput.value = 100;
+    masterVolOut.textContent = '100%';
+    if (masterGain) masterGain.gain.value = 1;
+    POTS.forEach(function(pot) {
+      const e = potEls[pot.id];
+      setInputValue(e.volumeInput, POT_DEFAULTS.volumePct, '%');
+      setInputValue(e.timingInput, POT_DEFAULTS.timingMs, 'ms');
+    });
+    clearSavedSettings();
+    drawTimeline();
+  }
+  document.getElementById('resetBtn').addEventListener('click', resetToStartingMix);
+
+  // ---- Export: expand each pot's knobs back out into a real per-file mix -
+  // same {masterVolume, layers:{...}} shape sound-lab.html uses, so this
+  // can be pasted straight into that tool (or handed off for index.html)
+  // with every real, final number already baked in.
+  function getExportSettings() {
+    const out = { masterVolume: parseFloat(masterVolInput.value), layers: {} };
+    Object.keys(SILENT_LAYERS).forEach(function(id) { out.layers[id] = Object.assign({}, SILENT_LAYERS[id]); });
+    POTS.forEach(function(pot) {
+      const e = potEls[pot.id];
+      const volumePct = parseFloat(e.volumeInput.value);
+      const timingMs = parseFloat(e.timingInput.value);
+      pot.subLayers.forEach(function(sub) {
+        const entry = {
+          volume: Math.round(sub.volume * (volumePct / 100) * 100) / 100,
+          delayMs: Math.max(0, sub.delayMs + timingMs),
+          fadeInMs: sub.fadeInMs,
+          holdMs: sub.holdMs,
+          fadeOutMs: sub.fadeOutMs,
+          pan: sub.pan,
+          pitch: sub.pitch,
+          reverb: sub.reverb,
+          decay: sub.decay,
+          warmth: sub.warmth,
+          repeat: sub.repeat,
+          gapMs: sub.gapMs
+        };
+        if (sub.hasLoopRegion) {
+          entry.loopStartMs = sub.loopStartMs;
+          entry.loopEndMs = sub.loopEndMs;
+        }
+        out.layers[sub.id] = entry;
+      });
+    });
+    return out;
+  }
+
+  const jsonBox = document.getElementById('jsonBox');
+  const ioStatus = document.getElementById('ioStatus');
+
+  document.getElementById('exportBtn').addEventListener('click', function() {
+    jsonBox.value = JSON.stringify(getExportSettings(), null, 2);
+    ioStatus.textContent = 'Exported current settings below.';
+  });
+
+  document.getElementById('downloadBtn').addEventListener('click', function() {
+    if (!jsonBox.value.trim()) jsonBox.value = JSON.stringify(getExportSettings(), null, 2);
+    const blob = new Blob([jsonBox.value], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'sound-lab-final-mix.json';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    ioStatus.textContent = 'Downloaded sound-lab-final-mix.json';
+  });
+
+  document.getElementById('copyBtn').addEventListener('click', function() {
+    if (!jsonBox.value.trim()) jsonBox.value = JSON.stringify(getExportSettings(), null, 2);
+    navigator.clipboard.writeText(jsonBox.value).then(function() {
+      ioStatus.textContent = 'Copied to clipboard.';
+    }).catch(function() {
+      ioStatus.textContent = 'Could not copy automatically - select and copy manually.';
+    });
+  });
+
+  // Apply JSON Above only understands THIS tool's own knob shape
+  // ({masterVolume, pots:{...}}), not the expanded per-file export shape -
+  // there's no way to reverse-derive a single Volume/Timing knob from nine
+  // arbitrary per-file numbers someone could paste in.
+  document.getElementById('applyBtn').addEventListener('click', function() {
+    try {
+      const json = JSON.parse(jsonBox.value);
+      if (!json.pots) throw new Error('Not a Sound Lab (Final) pot-settings JSON - paste one exported from this same tool, not the expanded per-file export.');
+      applySettings(json);
+      ioStatus.textContent = 'Applied settings from JSON above.';
+    } catch (err) {
+      ioStatus.textContent = 'Could not parse JSON: ' + err.message;
+    }
+  });
+
+  document.getElementById('importFile').addEventListener('change', function(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = function() {
+      jsonBox.value = reader.result;
+      try {
+        const json = JSON.parse(reader.result);
+        if (!json.pots) throw new Error('Not a Sound Lab (Final) pot-settings JSON.');
+        applySettings(json);
+        ioStatus.textContent = 'Loaded and applied ' + file.name;
+      } catch (err) {
+        ioStatus.textContent = 'Loaded ' + file.name + ' but could not parse it: ' + err.message;
+      }
+    };
+    reader.readAsText(file);
+  });
+</script>
+
+</body>
+</html>

@@ -393,6 +393,19 @@ body{
 .bubble[data-panel="chef"]{ top: 70%; left: 62%; }
 .bubble[data-panel="pass"]{ top: 81%; left: 30%; }
 .bubble[data-panel="foh"]{  top: 51%; left: 72%; }
+/* Kudos: fixed small size on both mobile and desktop, matching the
+   rainbow link's flat 60px (not the big clamp() nav size, and not
+   randomized like the rainbow deco bubble's DECO_DIAMETERS pool - always
+   this one size). Font/letter-spacing scaled way down from the base
+   .bubble rule so "Kudos" still fits inside a circle this small. */
+.bubble[data-modal="kudos"]{
+  width: 60px;
+  height: 60px;
+  font-size: 8.5px;
+  letter-spacing: 0.3px;
+  top: 38%;
+  left: 48%;
+}
 
 /* Nav tooltips are real sibling elements (built in JS, same pattern as
    .grab-hint below) rather than a ::after pseudo-element of .bubble -
@@ -421,7 +434,7 @@ body{
   cursor: grab;
 }
 .bubble{ cursor: grab; }
-.bubble[data-panel]{ cursor: pointer; }
+.bubble[data-panel], .bubble[data-modal]{ cursor: pointer; }
 .bubble.bubble-rainbow-link{
   /* Shared visuals for both the desktop version (JS-created, randomized
      size/position among the deco tier - width/height set inline there,
@@ -542,11 +555,16 @@ body{
 #stage.resolved #boil-again{ opacity:0.8; }
 #boil-again:hover{ opacity:1; }
 
-#sound-toggle{
+#sound-controls{
   position:fixed;
   top:12px;
   right:12px;
   z-index:6;
+  display:flex;
+  align-items:center;
+  gap:8px;
+}
+#sound-toggle{
   font-family:'Space Mono', monospace;
   font-size: 12px;
   letter-spacing: 1px;
@@ -561,6 +579,14 @@ body{
 }
 #sound-toggle:hover{ opacity:1; }
 #sound-toggle[aria-pressed="false"]{ background: rgba(20,17,13,0.4); color: rgba(247,243,233,0.55); }
+#sound-volume{
+  width: 72px;
+  accent-color: var(--ember);
+  opacity: 0.75;
+  transition: opacity 0.3s ease;
+  cursor: pointer;
+}
+#sound-volume:hover{ opacity: 1; }
 
 @media (max-width: 700px){
   body{ overflow-y:auto; overflow-x:hidden; }
@@ -641,6 +667,79 @@ body{
 }
 @media (prefers-reduced-motion: reduce){
   .panel{ transition: none; }
+}
+
+/* Lightweight modal - a centered card over a dim overlay, distinct from
+   the full-screen .panel treatment above. Used by Kudos; deliberately
+   simpler/quicker than a panel since it's just a handful of quotes, not
+   a whole section of the site. */
+.modal-overlay{
+  position:fixed;
+  inset:0;
+  background: rgba(20,17,13,0.72);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding: 24px;
+  z-index: 20;
+  opacity:0;
+  pointer-events:none;
+  transition: opacity 0.3s ease;
+}
+.modal-overlay.open{ opacity:1; pointer-events:auto; }
+.modal-overlay[hidden]{ display:none; }
+.modal-card{
+  background: var(--paper);
+  color: var(--char);
+  max-width: 480px;
+  width: 100%;
+  max-height: 80vh;
+  overflow-y:auto;
+  border-radius: 16px;
+  padding: 32px 28px;
+  position:relative;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+  transform: scale(0.9);
+  transition: transform 0.3s ease;
+}
+.modal-overlay.open .modal-card{ transform: scale(1); }
+.modal-close{
+  position:absolute;
+  top: 14px;
+  right: 14px;
+  font-family:'Space Mono', monospace;
+  font-size: 20px;
+  background: var(--paper);
+  border: 2px solid var(--ember);
+  color: var(--ember);
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  cursor:pointer;
+  line-height:1;
+}
+.kudos-quote{
+  margin: 0 0 20px;
+  padding-left: 16px;
+  border-left: 3px solid var(--ember);
+}
+.kudos-quote:last-child{ margin-bottom:0; }
+.kudos-quote p{
+  font-style: italic;
+  font-size: 15px;
+  line-height: 1.5;
+  margin-bottom: 6px;
+}
+.kudos-quote cite{
+  display:block;
+  font-family:'Space Mono', monospace;
+  font-size: 11px;
+  font-style: normal;
+  color: var(--sage);
+  letter-spacing:0.5px;
+}
+@media (prefers-reduced-motion: reduce){
+  .modal-overlay, .modal-card{ transition: none; }
 }
 
 .eyebrow{
@@ -971,6 +1070,11 @@ a.tasting-thumb{ cursor:pointer; }
     <button class="bubble" data-panel="chef" data-tooltip="about me">The Chef</button>
     <button class="bubble" data-panel="pass" data-tooltip="past client portfolio">The Pass</button>
     <button class="bubble" data-panel="foh" data-tooltip="place your order">Front of House</button>
+    <!-- data-modal (not data-panel) - opens the lightweight #kudos-modal
+         overlay below instead of a full-screen .panel. Still picked up by
+         the nav-bubble physics confinement and tooltip wiring, which key
+         off data-modal alongside data-panel - see initBubblePhysicsOnce. -->
+    <button class="bubble" data-modal="kudos" data-tooltip="nice things people have said">Kudos</button>
     <!-- Mobile-only fallback: decorative bubbles (including the randomized
          rainbow link below) only ever spawn via the desktop physics JS,
          which bails out entirely under 700px width - without this, mobile
@@ -983,23 +1087,25 @@ a.tasting-thumb{ cursor:pointer; }
 
   <button id="boil-again" type="button">Boil Again &#8635;</button>
 
-  <!-- Ignition is one-shot; the gas hiss is a seamless loop underneath it.
-       Bubbling is a permanent base loop (plain pot boil, tightly trimmed
-       so its own loop point is inaudible) that never stops once started -
-       there's always a boil sound playing. Three accent recordings (rice,
-       beans, a second pot-of-water take) fade in and back out over that
-       base one at a time at randomized intervals, adding texture without
-       ever silencing the base. Sound defaults on and playback is attempted
+  <!-- No <audio> tags here anymore - the final mix (tuned in
+       sound-lab-final.html, exported as sound-lab-final-mix.json) needs
+       real per-file panning, reverb, and a partial-loop region for the
+       ignition tail hiss, none of which plain <audio> elements can do.
+       Played instead through the Web Audio API in the script below: one
+       AudioBufferSourceNode per layer, decoded from assets/sfx-*.mp3.
+       Ignition (one-shot click) plus Ignition Tail Hiss (loops the same
+       recording's own tail, skipping past the click) carry the burner;
+       Bubbling Base/Beans/Water each run as two overlapping copies (seam-
+       hiding, same trick as sound-lab.html) all playing continuously
+       together, panned and leveled exactly as tuned - no randomized
+       rotation anymore. Sound defaults on and playback is attempted
        immediately on load; browsers that block audible autoplay without a
        prior gesture fall back to starting on the first genuine user
        interaction instead, wired up in the script below. -->
-  <audio id="sfx-ignition" src="assets/sfx-ignition.mp3" preload="auto"></audio>
-  <audio id="sfx-gas" src="assets/sfx-gas-hiss.mp3" preload="auto" loop></audio>
-  <audio id="sfx-bubbling-base" src="assets/sfx-bubbling-base.mp3" preload="auto" loop></audio>
-  <audio id="sfx-bubbling-rice" src="assets/sfx-bubbling-rice.mp3" preload="auto" loop></audio>
-  <audio id="sfx-bubbling-beans" src="assets/sfx-bubbling-beans.mp3" preload="auto" loop></audio>
-  <audio id="sfx-bubbling-water" src="assets/sfx-bubbling-water.mp3" preload="auto" loop></audio>
-  <button id="sound-toggle" type="button" aria-pressed="true">Sound On &#9834;</button>
+  <div id="sound-controls">
+    <button id="sound-toggle" type="button" aria-pressed="true">Sound On &#9834;</button>
+    <input type="range" id="sound-volume" min="0" max="100" value="67" aria-label="Sound volume">
+  </div>
 </div>
 
 <script>
@@ -1339,7 +1445,10 @@ a.tasting-thumb{ cursor:pointer; }
       }
       var elapsedMs = t - animStartTime;
 
-      var glowAlpha = clamp01((elapsedMs - IGNITE_START_MS) / GLOW_RAMP_MS);
+      // No fade - no fire at all until the sound's catch instant, then it's
+      // just on. A gradual ramp here would read as the flame "warming up,"
+      // which isn't what a gas burner catching actually looks like.
+      var glowAlpha = elapsedMs >= IGNITE_MS ? 1 : 0;
       var potAlpha = clamp01((elapsedMs - POT_START_MS) / POT_RAMP_MS);
       // Frozen at 0 under reduced motion so the flame/glow flicker (which
       // is driven by sin(t/...) jitter) holds perfectly still instead of
@@ -1378,10 +1487,15 @@ a.tasting-thumb{ cursor:pointer; }
   // burner glow/flames fade in around the ignition click, then the pot
   // itself fades in as the boil actually gets going. Kept as named
   // constants instead of inline numbers so both scripts stay in sync.
-  var IGNITE_START_MS = 450;  // black hold before the glow starts appearing
-  var GLOW_RAMP_MS = 900;     // glow + flames fade-in duration
-  var POT_START_MS = 750;     // pot (and bubbles) start fading in
-  var POT_RAMP_MS = 1400;     // pot fade-in duration
+  // The ignition sound effect (assets/sfx-ignition.mp3) doesn't actually
+  // catch until 1.7s into the file - everything before that is just the
+  // click/hiss build-up, no fire yet. So there's no flame at all until
+  // that instant: the pot ramps in gradually from a dark screen the whole
+  // time, and the flame glow snaps on suddenly (not a fade) exactly when
+  // the pot finishes ramping in, in sync with the sound's actual catch.
+  var IGNITE_MS = 1700;       // flame glow snaps on here - the sound's actual catch moment
+  var POT_START_MS = 0;       // pot (and bubbles) start fading in immediately
+  var POT_RAMP_MS = 1700;     // pot fade-in duration -> full right as the flame catches
   var stageEl = document.getElementById('stage');
   var boilHandle = null;
   var skipRequested = false;
@@ -1465,44 +1579,70 @@ a.tasting-thumb{ cursor:pointer; }
       // bubbles so it reads as static rather than a quieter animation.
       boilHandle = startBoilRender(document.getElementById('boil-canvas'), true, reduce);
       resolveStage();
+      // No animated ignition to sync anything to here - the pot's already
+      // fully lit from frame one, so this is ambient-only (no click/catch
+      // sound, which would imply an ignition that isn't actually happening).
+      if (window.startAudioAmbientOnly) window.startAudioAmbientOnly();
       return;
     }
 
     skipRequested = false;
-    boilHandle = startBoilRender(document.getElementById('boil-canvas'));
 
-    var skipListener = function() {
-      requestSkip();
-      cleanupSkipListeners();
-    };
-    function cleanupSkipListeners() {
-      document.removeEventListener('click', skipListener);
-      document.removeEventListener('keydown', skipListener);
-      document.removeEventListener('touchstart', skipListener);
+    function beginAnimatedIntro() {
+      boilHandle = startBoilRender(document.getElementById('boil-canvas'));
+
+      var skipListener = function() {
+        requestSkip();
+        cleanupSkipListeners();
+      };
+      function cleanupSkipListeners() {
+        document.removeEventListener('click', skipListener);
+        document.removeEventListener('keydown', skipListener);
+        document.removeEventListener('touchstart', skipListener);
+      }
+      document.addEventListener('click', skipListener);
+      document.addEventListener('keydown', skipListener);
+      document.addEventListener('touchstart', skipListener);
+
+      var start = performance.now();
+      (function poll() {
+        var elapsed = performance.now() - start;
+        if (skipRequested) {
+          // Impatience wins: skip goes straight to the fully resolved
+          // state, no percolate-over-the-photo phase.
+          cleanupSkipListeners();
+          sessionStorage.setItem('boiled', '1');
+          resolveStage();
+          return;
+        }
+        if (elapsed >= BOIL_DURATION_MS) {
+          cleanupSkipListeners();
+          sessionStorage.setItem('boiled', '1');
+          beginPercolateReveal();
+          return;
+        }
+        requestAnimationFrame(poll);
+      })();
     }
-    document.addEventListener('click', skipListener);
-    document.addEventListener('keydown', skipListener);
-    document.addEventListener('touchstart', skipListener);
 
-    var start = performance.now();
-    (function poll() {
-      var elapsed = performance.now() - start;
-      if (skipRequested) {
-        // Impatience wins: skip goes straight to the fully resolved
-        // state, no percolate-over-the-photo phase.
-        cleanupSkipListeners();
-        sessionStorage.setItem('boiled', '1');
-        resolveStage();
-        return;
-      }
-      if (elapsed >= BOIL_DURATION_MS) {
-        cleanupSkipListeners();
-        sessionStorage.setItem('boiled', '1');
-        beginPercolateReveal();
-        return;
-      }
-      requestAnimationFrame(poll);
-    })();
+    // Everything below hinges on getting the canvas's own animStartTime
+    // clock and the ignition sound's actual playback to start in the same
+    // instant, so the flame's on-screen catch at IGNITE_MS lands on the
+    // sound file's real catch. attemptEagerAudioSync (defined in the audio
+    // block below, which runs before this call fires) tries the no-gesture
+    // autoplay and reports back the moment it's genuinely known to have
+    // started OR been blocked - that settles almost immediately either way
+    // (nothing here is network-bound), so this never holds the page
+    // hostage waiting on it. If it's blocked, the intro still launches
+    // right away, just silently - exactly like before this change; the
+    // first real user interaction picks up ambient sound only from then on
+    // (see startAmbientAudioOnly), since replaying the click+catch over an
+    // already-lit pot is the exact desync this was built to avoid.
+    if (window.attemptEagerAudioSync) {
+      window.attemptEagerAudioSync(beginAnimatedIntro);
+    } else {
+      beginAnimatedIntro();
+    }
   }
 
   function replayBoilManually() {
@@ -1547,88 +1687,82 @@ a.tasting-thumb{ cursor:pointer; }
 
   document.getElementById('boil-again').addEventListener('click', replayBoilManually);
 
-  // Sound: ignition click, then gas hiss + bubbling fading in underneath as
-  // the visuals do (see IGNITE_START_MS etc. above). Sound defaults on and
-  // we attempt playback immediately on load - but browsers flatly refuse to
-  // autoplay audio with sound before the visitor has interacted with the
-  // page at all, no amount of JS trickery gets around that, it's a
-  // deliberate anti-annoyance policy in every major browser. So the eager
-  // attempt below plays instantly wherever the browser permits it, and
-  // silently falls back to starting on the very first click/key/touch
-  // otherwise - which the existing skip-listener pattern already captures
-  // near-instantly for most visitors anyway.
+  // Sound: real per-layer mix via the Web Audio API (pan/reverb/a partial-
+  // loop region for the ignition tail hiss - none of which plain <audio>
+  // elements can do), tuned by ear in sound-lab-final.html and exported as
+  // sound-lab-final-mix.json. Sound defaults on and we attempt playback
+  // immediately on load - but browsers flatly refuse to autoplay audio
+  // with sound before the visitor has interacted with the page at all, no
+  // amount of JS trickery gets around that, it's a deliberate anti-
+  // annoyance policy in every major browser. So the eager attempt below
+  // plays instantly wherever the browser permits it, and silently falls
+  // back to starting on the very first click/key/touch otherwise - which
+  // the existing skip-listener pattern already captures near-instantly for
+  // most visitors anyway.
   (function() {
     // Kill switch: flip back to true to reconnect sound. While false, the
     // whole sequence below is skipped entirely (nothing plays, toggle is
     // hidden) so the site ships silent without deleting any of the audio
     // work.
-    var SOUND_FEATURE_ENABLED = false;
+    var SOUND_FEATURE_ENABLED = true;
 
     var soundToggle = document.getElementById('sound-toggle');
+    var soundControls = document.getElementById('sound-controls');
+    var soundVolumeInput = document.getElementById('sound-volume');
     if (!SOUND_FEATURE_ENABLED) {
-      if (soundToggle) soundToggle.hidden = true;
+      if (soundControls) soundControls.hidden = true;
       return;
     }
 
-    var sfxIgnition = document.getElementById('sfx-ignition');
-    var sfxGas = document.getElementById('sfx-gas');
+    // ---- Baked mix -------------------------------------------------
+    // Every volume/delay/fade/hold/gap/pan/pitch/reverb/decay/warmth
+    // number below came straight out of sound-lab-final.html's Export
+    // (sound-lab-final-mix.json) - tuned by ear there, not guessed here.
+    // "gas" (the separate gas-hiss.mp3 file) was tuned to 0 volume and
+    // stayed there, so it's not even fetched below - production doesn't
+    // pay for a file that would be permanently silent. Ignition Tail Hiss
+    // (looping the ignition recording's own tail, skipping past the click
+    // via loopStartMs/loopEndMs) is what carries the ambient hiss instead.
+    // Base/Beans/Water each run as two overlapping copies (same seam-
+    // hiding trick as sound-lab.html: Copy B's own stagger sits mid-loop
+    // whenever Copy A hits its seam, and vice versa) - real, tuned values,
+    // not random.
+    var MASTER_VOLUME_DEFAULT = 0.67; // sound-lab-final-mix.json masterVolume: 67
+    var IGNITION_LAYER_ID = 'ignition'; // the one layer startAmbientAudioOnly skips
+    var LAYERS = [
+      { id: 'ignition', file: 'assets/sfx-ignition.mp3', loop: false, hasHold: false,
+        volume: 100, delayMs: 0, fadeInMs: 0, holdMs: 0, fadeOutMs: 0,
+        pan: 0, pitch: 0, reverb: 0, decay: 55, warmth: 20000, repeat: false, gapMs: 4000 },
+      { id: 'ignition-tail', file: 'assets/sfx-ignition.mp3', loop: true, hasHold: true, hasLoopRegion: true,
+        loopStartMs: 2500, loopEndMs: 8000,
+        volume: 101, delayMs: 0, fadeInMs: 0, holdMs: 3600000, fadeOutMs: 0,
+        pan: 0, pitch: 0, reverb: 0, decay: 55, warmth: 20000, repeat: true, gapMs: 0 },
+      { id: 'base-a', file: 'assets/sfx-bubbling-base.mp3', loop: true, hasHold: true,
+        volume: 60, delayMs: 4000, fadeInMs: 1200, holdMs: 3600000, fadeOutMs: 3000,
+        pan: -8, pitch: 0, reverb: 9, decay: 39, warmth: 20000, repeat: true, gapMs: 22500 },
+      { id: 'base-b', file: 'assets/sfx-bubbling-base.mp3', loop: true, hasHold: true,
+        volume: 47, delayMs: 6600, fadeInMs: 1200, holdMs: 3600000, fadeOutMs: 3400,
+        pan: 8, pitch: 0, reverb: 0, decay: 55, warmth: 20000, repeat: true, gapMs: 5000 },
+      { id: 'beans-a', file: 'assets/sfx-bubbling-beans.mp3', loop: true, hasHold: true,
+        volume: 21, delayMs: 19200, fadeInMs: 1500, holdMs: 3600000, fadeOutMs: 3700,
+        pan: -49, pitch: 0, reverb: 0, decay: 55, warmth: 20000, repeat: true, gapMs: 20500 },
+      { id: 'beans-b', file: 'assets/sfx-bubbling-beans.mp3', loop: true, hasHold: true,
+        volume: 25, delayMs: 19900, fadeInMs: 1500, holdMs: 3600000, fadeOutMs: 3400,
+        pan: 76, pitch: 0, reverb: 0, decay: 55, warmth: 20000, repeat: true, gapMs: 21500 },
+      { id: 'water-a', file: 'assets/sfx-bubbling-water.mp3', loop: true, hasHold: true,
+        volume: 23, delayMs: 33500, fadeInMs: 1500, holdMs: 3600000, fadeOutMs: 2300,
+        pan: -68, pitch: 0, reverb: 8, decay: 55, warmth: 20000, repeat: true, gapMs: 30000 },
+      { id: 'water-b', file: 'assets/sfx-bubbling-water.mp3', loop: true, hasHold: true,
+        volume: 19, delayMs: 41800, fadeInMs: 1500, holdMs: 3600000, fadeOutMs: 2200,
+        pan: 67, pitch: 0, reverb: 8, decay: 55, warmth: 20000, repeat: true, gapMs: 30000 }
+    ];
 
-    // The base bubbling loop (plain pot boil, tightly trimmed) plays
-    // continuously for the whole visit once started - it never pauses or
-    // fades to zero, so there's always a boil sound happening. Three
-    // accent recordings (rice, beans, a second pot-of-water take) layer on
-    // top one at a time, fading in, holding, and fading back out at
-    // randomized intervals - texture and variety without ever silencing
-    // the base underneath.
-    var BASE_VOLUME = 0.5;
-    var ACCENT_VOLUME = 0.32;
-    var sfxBubblingBase = document.getElementById('sfx-bubbling-base');
-    var accentLayers = [
-      document.getElementById('sfx-bubbling-rice'),
-      document.getElementById('sfx-bubbling-beans'),
-      document.getElementById('sfx-bubbling-water')
-    ].filter(Boolean);
-    var accentTimer = null;
-
-    // Linear volume ramp starting `delayMs` from now, reaching
-    // `targetVolume` after `durationMs` - used to bring the gas hiss and
-    // bubbling base in under the ignition click at the same pace the
-    // canvas fades in the glow/pot, instead of both blasting in at full
-    // volume the instant playback is allowed to start.
-    function rampVolumeIn(el, targetVolume, delayMs, durationMs) {
-      if (!el) return;
-      el.volume = 0;
-      setTimeout(function() {
-        var steps = 20;
-        var stepMs = durationMs / steps;
-        var i = 0;
-        var timer = setInterval(function() {
-          i++;
-          el.volume = Math.min(targetVolume, targetVolume * (i / steps));
-          if (i >= steps) clearInterval(timer);
-        }, stepMs);
-      }, delayMs);
-    }
-
-    // Fades `el`'s volume from wherever it currently is to `targetVolume`
-    // over `durationMs`, then calls `onDone`. Used for both the accent
-    // fade-in and fade-out.
-    function fadeVolumeTo(el, targetVolume, durationMs, onDone) {
-      if (!el) { if (onDone) onDone(); return; }
-      var steps = 30;
-      var stepMs = durationMs / steps;
-      var startVol = el.volume;
-      var i = 0;
-      var timer = setInterval(function() {
-        i++;
-        var t = i / steps;
-        el.volume = startVol + (targetVolume - startVol) * t;
-        if (i >= steps) {
-          clearInterval(timer);
-          if (onDone) onDone();
-        }
-      }, stepMs);
-    }
+    var soundVolumeScale = MASTER_VOLUME_DEFAULT;
+    try {
+      var storedVolume = localStorage.getItem('cmk-sound-volume');
+      if (storedVolume !== null) soundVolumeScale = parseFloat(storedVolume) / 100;
+    } catch (err) { /* localStorage unavailable - default stands */ }
+    if (soundVolumeInput) soundVolumeInput.value = Math.round(soundVolumeScale * 100);
 
     var soundEnabled = true;
     try {
@@ -1642,76 +1776,237 @@ a.tasting-thumb{ cursor:pointer; }
     }
     updateToggleUI();
 
-    function applyMuteState() {
-      [sfxIgnition, sfxGas, sfxBubblingBase].concat(accentLayers).forEach(function(el) {
-        if (el) el.muted = !soundEnabled;
+    // ---- Web Audio engine --------------------------------------------
+    // One shared AudioContext + a single masterGain every layer routes
+    // through - mute/volume become one number on one node instead of
+    // looping over several <audio> elements, and moving the slider
+    // rescales everything currently sounding instantly with no per-layer
+    // ramp bookkeeping needed.
+    var ctx = null;
+    var masterGain = null;
+    function audioCtx() {
+      if (!ctx) {
+        ctx = new (window.AudioContext || window.webkitAudioContext)();
+        masterGain = ctx.createGain();
+        masterGain.gain.value = soundEnabled ? soundVolumeScale : 0;
+        masterGain.connect(ctx.destination);
+      }
+      return ctx;
+    }
+    function applyMasterGain() {
+      if (masterGain) masterGain.gain.value = soundEnabled ? soundVolumeScale : 0;
+    }
+
+    var buffers = {};      // file path -> decoded AudioBuffer
+    var layerState = {};   // layer id -> { node, isPlaying }
+    var mixTimers = [];
+    var mixRunning = false;
+
+    var uniqueFiles = LAYERS.reduce(function(acc, l) { if (acc.indexOf(l.file) < 0) acc.push(l.file); return acc; }, []);
+    // Kicked off immediately at parse time, not gated on anything -
+    // decoding is plain network+CPU work, no autoplay policy involved, so
+    // there's no reason to wait on a gesture before starting it.
+    var buffersReady = Promise.all(uniqueFiles.map(function(file) {
+      return fetch(file)
+        .then(function(r) { return r.arrayBuffer(); })
+        .then(function(ab) { return audioCtx().decodeAudioData(ab); })
+        .then(function(buf) { buffers[file] = buf; })
+        .catch(function() { /* one bad file shouldn't block the others */ });
+    })).then(function() { return true; });
+
+    function buildEffectsGraph(layer) {
+      var c = audioCtx();
+      var gain = c.createGain();
+      var filter = c.createBiquadFilter();
+      filter.type = 'lowpass';
+      filter.frequency.value = layer.warmth;
+      filter.Q.value = 0.7;
+
+      var revAmt = layer.reverb / 100;
+      if (revAmt > 0.01) {
+        var decV = Math.min(layer.decay / 100, 0.92);
+        var delT = revAmt * 0.32;
+        var del = c.createDelay(2.5);
+        var fbg = c.createGain();
+        var dryG = c.createGain();
+        var wetG = c.createGain();
+        del.delayTime.value = delT;
+        fbg.gain.value = decV;
+        dryG.gain.value = 1 - revAmt * 0.45;
+        wetG.gain.value = revAmt * 0.55;
+        filter.connect(dryG); filter.connect(del);
+        del.connect(fbg); fbg.connect(del); del.connect(wetG);
+        dryG.connect(gain); wetG.connect(gain);
+      } else {
+        filter.connect(gain);
+      }
+
+      var panV = layer.pan / 100;
+      if (Math.abs(panV) > 0.01) {
+        var panner = c.createStereoPanner();
+        panner.pan.value = panV;
+        gain.connect(panner);
+        panner.connect(masterGain);
+      } else {
+        gain.connect(masterGain);
+      }
+      return { filterNode: filter, gain: gain };
+    }
+
+    function startLayerSource(layer, startAt) {
+      var c = audioCtx();
+      var buffer = buffers[layer.file];
+      if (!buffer) return null;
+
+      var rate = Math.pow(2, layer.pitch / 12);
+      var src = c.createBufferSource();
+      src.buffer = buffer;
+      src.playbackRate.value = rate;
+      src.loop = layer.loop;
+
+      var loopStartSec = 0;
+      if (layer.hasLoopRegion) {
+        loopStartSec = Math.min(layer.loopStartMs / 1000, Math.max(0, buffer.duration - 0.05));
+        var loopEndSec = Math.min(layer.loopEndMs / 1000, buffer.duration);
+        loopEndSec = Math.max(loopEndSec, loopStartSec + 0.05);
+        src.loopStart = loopStartSec;
+        src.loopEnd = loopEndSec;
+      }
+
+      var graph = buildEffectsGraph(layer);
+      src.connect(graph.filterNode);
+      graph.gain.gain.setValueAtTime(0, startAt);
+
+      var nodeObj = { source: src, gain: graph.gain, startedAt: startAt, buffer: buffer, rate: rate };
+      src.onended = function() {
+        if (layerState[layer.id] && layerState[layer.id].node === nodeObj) {
+          layerState[layer.id].isPlaying = false;
+          layerState[layer.id].node = null;
+        }
+      };
+      src.start(startAt, loopStartSec);
+      return nodeObj;
+    }
+
+    var CYCLE_LOOKAHEAD_MS = 200;
+
+    // One play-cycle for a layer: start, fade in, and (for hasHold
+    // layers) hold then fade out then stop, then - if repeat - schedule
+    // the next cycle. Mirrors sound-lab.html's runLayerCycle exactly, so
+    // the live site behaves identically to what was actually auditioned.
+    function runLayerCycle(layer, startAt) {
+      var c = audioCtx();
+      if (startAt == null || startAt < c.currentTime) startAt = c.currentTime;
+
+      var node = startLayerSource(layer, startAt);
+      if (!node) return;
+      layerState[layer.id] = { node: node, isPlaying: true };
+
+      var targetVol = layer.volume / 100;
+      if (layer.fadeInMs > 0) {
+        node.gain.gain.linearRampToValueAtTime(targetVol, startAt + layer.fadeInMs / 1000);
+      } else {
+        node.gain.gain.setValueAtTime(targetVol, startAt);
+      }
+
+      var cycleEndAt;
+      if (layer.hasHold) {
+        var holdEndAt = startAt + (layer.fadeInMs + layer.holdMs) / 1000;
+        cycleEndAt = holdEndAt + layer.fadeOutMs / 1000;
+        if (layer.fadeOutMs > 0) {
+          node.gain.gain.setValueAtTime(targetVol, holdEndAt);
+          node.gain.gain.linearRampToValueAtTime(0, cycleEndAt);
+        }
+        node.source.stop(cycleEndAt);
+      } else {
+        cycleEndAt = startAt + node.buffer.duration / node.rate; // one-shot's natural end (ignition)
+      }
+
+      if (layer.repeat) {
+        var nextStartAt = cycleEndAt + layer.gapMs / 1000;
+        var msUntilPrepare = Math.max(0, (cycleEndAt - c.currentTime) * 1000 - CYCLE_LOOKAHEAD_MS);
+        var t = setTimeout(function() { runLayerCycle(layer, nextStartAt); }, msUntilPrepare);
+        mixTimers.push(t);
+      }
+    }
+
+    function stopAllLayers() {
+      mixTimers.forEach(function(t) { clearTimeout(t); });
+      mixTimers = [];
+      Object.keys(layerState).forEach(function(id) {
+        var st = layerState[id];
+        if (st.node) {
+          try { st.node.source.stop(0); } catch (err) { /* already stopped */ }
+          st.node = null;
+        }
+        st.isPlaying = false;
       });
+      mixRunning = false;
     }
 
-    // Randomized action: pick a random accent, fade it in over the
-    // (never-stopping) base, hold it a while, fade it back out, then
-    // schedule the next one - so the boil's texture keeps shifting
-    // without the constant base ever going quiet.
-    function playNextAccent() {
-      var layer = accentLayers[Math.floor(Math.random() * accentLayers.length)];
-      layer.currentTime = 0;
-      layer.volume = 0;
-      layer.play().catch(function() {});
-      fadeVolumeTo(layer, ACCENT_VOLUME, 4000, function() {
-        var holdMs = 8000 + Math.random() * 8000;
-        accentTimer = setTimeout(function() {
-          fadeVolumeTo(layer, 0, 4000, function() {
-            layer.pause();
-            scheduleNextAccent();
-          });
-        }, holdMs);
+    function scheduleLayers(layerList) {
+      layerList.forEach(function(layer) {
+        var t = setTimeout(function() { runLayerCycle(layer); }, layer.delayMs);
+        mixTimers.push(t);
       });
+      mixRunning = true;
     }
 
-    function scheduleNextAccent() {
-      var delay = 6000 + Math.random() * 10000;
-      accentTimer = setTimeout(function() {
-        if (soundEnabled) playNextAccent();
-        else scheduleNextAccent();
-      }, delay);
-    }
-
-    // Unconditionally (re)plays everything from the top: the ignition
-    // click, the gas hiss ramping in under it, and the bubbling base
-    // ramping in as the pot appears - then kicks off the accent rotation.
-    // Used for the eager load-time attempt, the interaction fallback, and
-    // Boil Again - all three want a genuine replay of the whole sequence.
+    // Unconditionally (re)plays every layer from the top, ignition
+    // included - only ever appropriate when the flame is genuinely about
+    // to (or just did) catch on screen. See attemptEagerAudioSync below
+    // and Boil Again's click handler, the only two callers.
     function restartAudioSequence() {
-      applyMuteState();
-      if (sfxIgnition) { sfxIgnition.currentTime = 0; sfxIgnition.play().catch(function() {}); }
-      if (sfxGas) {
-        sfxGas.currentTime = 0;
-        sfxGas.play().catch(function() {});
-        rampVolumeIn(sfxGas, 0.35, IGNITE_START_MS, GLOW_RAMP_MS);
-      }
-
-      if (accentTimer) { clearTimeout(accentTimer); accentTimer = null; }
-      accentLayers.forEach(function(layer) { layer.pause(); layer.currentTime = 0; layer.volume = 0; });
-
-      if (sfxBubblingBase) {
-        sfxBubblingBase.currentTime = 0;
-        sfxBubblingBase.play().catch(function() {});
-        rampVolumeIn(sfxBubblingBase, BASE_VOLUME, POT_START_MS, POT_RAMP_MS);
-      }
-      scheduleNextAccent();
+      buffersReady.then(function() {
+        stopAllLayers();
+        scheduleLayers(LAYERS);
+      });
     }
 
-    // Idempotent version: no-ops if the ambient loop is already actually
-    // playing (sfxGas.paused is the one reliable signal for that, since it
-    // loops forever once genuinely started - a blocked/rejected .play()
-    // call leaves the element paused). Safe to call from multiple trigger
-    // points (eager load attempt, first-interaction fallback, sound
-    // toggle) without causing a duplicate restart or audible glitch.
-    function startAudioSequence() {
-      applyMuteState();
-      if (sfxGas && !sfxGas.paused) return;
-      restartAudioSequence();
+    // Starts every layer EXCEPT ignition (the one-shot click) - used any
+    // time sound starts after the flame's already on screen (first
+    // interaction after the intro has resolved, the sound toggle, the
+    // volume slider). Playing the click-then-catch sound in those cases
+    // would narrate an ignition that already happened, over a pot that's
+    // already lit - exactly the desync this two-path split exists to
+    // avoid. Idempotent: no-ops if a mix is already running.
+    function startAmbientAudioOnly() {
+      if (mixRunning) return;
+      buffersReady.then(function() {
+        if (mixRunning) return;
+        scheduleLayers(LAYERS.filter(function(l) { return l.id !== IGNITION_LAYER_ID; }));
+      });
     }
+
+    // Called from runBoilSequence (script block above, which runs after
+    // this IIFE has executed and set this) right as the animated intro is
+    // about to launch. Tries the no-gesture autoplay (an AudioContext
+    // starts 'suspended' without a prior gesture; resume() reports back
+    // once it's genuinely known to be running or not) and reports back -
+    // capped at 400ms so a slow connection or a blocked context never
+    // holds the page hostage waiting on it. On success the canvas clock
+    // starts in the same instant real audio does, landing the flame's
+    // IGNITE_MS catch on the sound file's real catch; on failure (or
+    // timeout) the caller still launches immediately, just silently - the
+    // first-interaction listener below takes over from there.
+    window.attemptEagerAudioSync = function(callback) {
+      var settled = false;
+      function finish() { if (!settled) { settled = true; callback(); } }
+      var timer = setTimeout(finish, 400);
+      var c = audioCtx();
+      var resumeAttempt = c.state === 'running' ? Promise.resolve(true) : c.resume().then(
+        function() { return c.state === 'running'; },
+        function() { return false; }
+      );
+      Promise.all([buffersReady, resumeAttempt]).then(function(results) {
+        if (settled) return; // took too long - visual already launched silently
+        clearTimeout(timer);
+        settled = true;
+        if (results[1]) scheduleLayers(LAYERS);
+        callback();
+      }, finish);
+    };
+    window.startAudioAmbientOnly = startAmbientAudioOnly;
 
     function stopWaitingForFirstInteraction() {
       document.removeEventListener('click', firstInteractionAudioStart);
@@ -1720,7 +2015,16 @@ a.tasting-thumb{ cursor:pointer; }
     }
     function firstInteractionAudioStart() {
       stopWaitingForFirstInteraction();
-      startAudioSequence();
+      // By the time a first interaction fires, the animated intro (if any
+      // was running) has already been skipped to fully-resolved by this
+      // same click/key/touch - see the skip listener in runBoilSequence,
+      // which listens for the same three event types. So the flame is
+      // always already lit here; ambient-only keeps the ignition sound
+      // from replaying over it. Also resumes the AudioContext, which a
+      // genuine gesture is always allowed to do even if the earlier eager
+      // attempt was blocked.
+      audioCtx();
+      startAmbientAudioOnly();
     }
     document.addEventListener('click', firstInteractionAudioStart);
     document.addEventListener('keydown', firstInteractionAudioStart);
@@ -1733,8 +2037,27 @@ a.tasting-thumb{ cursor:pointer; }
       soundEnabled = !soundEnabled;
       try { localStorage.setItem('cmk-sound', soundEnabled ? '1' : '0'); } catch (err) { /* ignore */ }
       updateToggleUI();
-      startAudioSequence();
+      applyMasterGain();
+      startAmbientAudioOnly();
     });
+
+    if (soundVolumeInput) {
+      soundVolumeInput.addEventListener('input', function(e) {
+        e.stopPropagation();
+        soundVolumeScale = parseFloat(soundVolumeInput.value) / 100;
+        try { localStorage.setItem('cmk-sound-volume', soundVolumeInput.value); } catch (err) { /* ignore */ }
+        applyMasterGain();
+      });
+      // Dragging the slider is itself a genuine user gesture, same as the
+      // toggle - if autoplay was blocked and nothing's started yet, use it
+      // to kick off playback too rather than leaving it silent.
+      soundVolumeInput.addEventListener('click', function(e) { e.stopPropagation(); });
+      soundVolumeInput.addEventListener('pointerdown', function(e) {
+        e.stopPropagation();
+        audioCtx();
+        startAmbientAudioOnly();
+      });
+    }
 
     // Boil Again is already a genuine click/gesture, and it's replaying
     // the whole visual sequence, so it always gets a full audio replay
@@ -1744,12 +2067,11 @@ a.tasting-thumb{ cursor:pointer; }
       restartAudioSequence();
     });
 
-    // Eager attempt: fires immediately on load, before any interaction.
-    // Succeeds in browsers/contexts that allow it (e.g. the page was
-    // opened via a link click, or the site has enough prior media
-    // engagement) and is silently rejected everywhere else, in which case
-    // the first-interaction listener above takes over.
-    startAudioSequence();
+    // No eager play() call here anymore - runBoilSequence (script block
+    // above) drives the eager attempt itself via window.attemptEagerAudioSync
+    // so the canvas clock and the ignition sound start in the same instant
+    // instead of as two independent, unsynced attempts. If that's blocked,
+    // the first-interaction listener above takes over (ambient-only).
   })();
 
   applyAmbientMotion();
@@ -2052,6 +2374,29 @@ a.tasting-thumb{ cursor:pointer; }
   </div>
 </div>
 
+<!-- Lightweight modal (distinct from the full-screen .panel system above) -
+     a centered card over a dim overlay, opened by the Kudos bubble. Quote
+     text below is placeholder scaffolding, not real testimonials - swap
+     each one for an actual quote before this ships live. -->
+<div class="modal-overlay" id="kudos-modal" role="dialog" aria-modal="true" aria-labelledby="kudos-modal-title" hidden>
+  <div class="modal-card">
+    <button class="modal-close" type="button" aria-label="Close">&times;</button>
+    <h2 id="kudos-modal-title" style="font-family:'Space Mono',monospace; margin-bottom:16px;">Kudos</h2>
+    <blockquote class="kudos-quote">
+      <p>&ldquo;[Quote 1 &mdash; replace with a real testimonial]&rdquo;</p>
+      <cite>&mdash; [Name / Company]</cite>
+    </blockquote>
+    <blockquote class="kudos-quote">
+      <p>&ldquo;[Quote 2 &mdash; replace with a real testimonial]&rdquo;</p>
+      <cite>&mdash; [Name / Company]</cite>
+    </blockquote>
+    <blockquote class="kudos-quote">
+      <p>&ldquo;[Quote 3 &mdash; replace with a real testimonial]&rdquo;</p>
+      <cite>&mdash; [Name / Company]</cite>
+    </blockquote>
+  </div>
+</div>
+
 <script>
   var openPanelId = null;
   var lastFocusedTrigger = null;
@@ -2098,6 +2443,7 @@ a.tasting-thumb{ cursor:pointer; }
   }
 
   document.querySelectorAll('.bubble').forEach(function(bubble) {
+    if (!bubble.dataset.panel) return;
     bubble.addEventListener('click', function() {
       openPanel(bubble.dataset.panel);
     });
@@ -2106,6 +2452,48 @@ a.tasting-thumb{ cursor:pointer; }
   document.querySelectorAll('.panel-close').forEach(function(btn) {
     btn.addEventListener('click', closePanel);
   });
+
+  // ---- Kudos modal (lightweight, not a full .panel) ----------------------
+  var kudosModal = document.getElementById('kudos-modal');
+  var kudosTrigger = document.querySelector('.bubble[data-modal="kudos"]');
+
+  function onKudosModalKeydown(e) {
+    if (e.key === 'Escape') closeKudosModal();
+  }
+
+  function openKudosModal() {
+    if (!kudosModal) return;
+    kudosModal.hidden = false;
+    requestAnimationFrame(function() { kudosModal.classList.add('open'); });
+    kudosModal.querySelector('.modal-close').focus();
+    document.addEventListener('keydown', onKudosModalKeydown);
+  }
+
+  function closeKudosModal() {
+    if (!kudosModal || !kudosModal.classList.contains('open')) return;
+    kudosModal.classList.remove('open');
+    var reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (reduceMotion) {
+      kudosModal.hidden = true;
+    } else {
+      kudosModal.addEventListener('transitionend', function finish() {
+        kudosModal.hidden = true;
+      }, { once: true });
+    }
+    document.removeEventListener('keydown', onKudosModalKeydown);
+    if (kudosTrigger) kudosTrigger.focus();
+  }
+
+  if (kudosTrigger) {
+    kudosTrigger.addEventListener('click', openKudosModal);
+  }
+  if (kudosModal) {
+    kudosModal.querySelector('.modal-close').addEventListener('click', closeKudosModal);
+    // Click on the dim overlay itself (not the card) closes it too.
+    kudosModal.addEventListener('click', function(e) {
+      if (e.target === kudosModal) closeKudosModal();
+    });
+  }
 </script>
 
 <script>
@@ -2538,7 +2926,7 @@ a.tasting-thumb{ cursor:pointer; }
         // side of the field - decorative bubbles keep the full-width
         // range, and this also keeps nav clear of the content cascade
         // now over in the upper-left corner.
-        var isNav = el.hasAttribute('data-panel');
+        var isNav = el.hasAttribute('data-panel') || el.hasAttribute('data-modal');
         var xMin = isNav ? fieldW * 0.58 : marginSide;
         emergeQueue.push({ el: el, r: r, target: placeIn(topBandBottom, fieldH - marginBottom, xMin, fieldW - marginSide, r) });
       });
