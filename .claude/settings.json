@@ -119,7 +119,8 @@
       "Bash('/c/Program Files/Google/Chrome/Application/chrome.exe' --headless=new --disable-gpu --no-sandbox --remote-debugging-port=9222 '--user-data-dir=C:\\\\Users\\\\micha\\\\AppData\\\\Local\\\\Temp\\\\cdp-test\\\\profile' --autoplay-policy=user-gesture-required about:blank)",
       "Bash(disown)",
       "Bash(curl -s http://localhost:9222/json/version)",
-      "Bash(node \"C:\\\\Users\\\\micha\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\d--Desktop-software-solutions\\\\fd6ded6d-6d38-4e8d-9b0c-2368455ea8fc\\\\scratchpad\\\\cdp-verify.mjs\")"
+      "Bash(node \"C:\\\\Users\\\\micha\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\d--Desktop-software-solutions\\\\fd6ded6d-6d38-4e8d-9b0c-2368455ea8fc\\\\scratchpad\\\\cdp-verify.mjs\")",
+      "Bash(grep -n '250 – \\\\$750' \"d:/Desktop/software solutions/index.html\" \"d:/Desktop/software solutions/menu.html\")"
     ],
     "additionalDirectories": [
       "d:\\Desktop\\software solutions",
